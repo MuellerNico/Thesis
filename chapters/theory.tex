@@ -1,0 +1,43 @@
+\section{Theory}
+\subsection{SPH Theory}
+\subsection{MHD Theory}
+% Magnetic Pressue
+% \begin{equation}
+% P_\text{mag} = \frac{|B|^2}{2\mu_0} = \frac{B_x^2 + B_y^2 + B_z^2}{2\mu_0}    
+% \end{equation}
+
+% MHD Stress Tensor
+% \begin{equation}
+% S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
+% \end{equation}
+
+Induction Equation
+\begin{equation}
+    \frac{d\mathbf{B}}{dt} = (\mathbf{B}\cdot\nabla)\mathbf{v} - \mathbf{B}(\nabla\cdot\mathbf{v})
+\end{equation}
+
+Normalized divergence error
+\begin{equation}
+\epsilon_{\mathrm{divB}} = \frac{h\,|\nabla\cdot\mathbf{B}|}{|\mathbf{B}|}
+\end{equation}
+
+Divergence cleaning
+\begin{equation}
+    \left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla\psi \\ 
+\end{equation}
+
+\begin{equation}
+\frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h\,\nabla\cdot\mathbf{B} 
+  - \frac{1}{\tau}\frac{\psi}{c_h} - \frac{1}{2}\psi(\nabla\cdot\mathbf{v})
+\end{equation}
+
+\subsection{Artificial Resistivity}
+Discontinuities
+\subsubsection{Classic}
+\subsubsection{Switches}
+Tricco \& Price switch
+\begin{equation}
+\alpha_{B,a} = \frac{h_a\,|\nabla\mathbf{B}_a|}{|\mathbf{B}_a|}, \qquad \alpha_B \in [0,\,1]
+\end{equation}
+\subsubsection{SLR}
+
