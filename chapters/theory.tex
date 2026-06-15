@@ -33,11 +33,49 @@ Divergence cleaning
 
 \subsection{Artificial Resistivity}
 Discontinuities
+
 \subsubsection{Classic}
+resistivity. dimensionless constant $\alpha_B$. signal velocity
+
 \subsubsection{Switches}
-Tricco \& Price switch
+Tricco \& Price switch. They used different signal velocity though. Later replaced switch with current signal velocity. For clean comparison need to run with old v\_sig
 \begin{equation}
 \alpha_{B,a} = \frac{h_a\,|\nabla\mathbf{B}_a|}{|\mathbf{B}_a|}, \qquad \alpha_B \in [0,\,1]
 \end{equation}
-\subsubsection{SLR}
 
+
+\subsubsection{SLR}
+Subtract linear component to remove dissipation in smooth flow. But reconstruction dangerous at shocks (overshoots/monotonicity violations, see TVD limiters). Need limiter to compare jacobians and only apply reconstruction if both sides "aggree", i.e. have very similar jacobians. 
+
+Van Leer-style limiters not specific to velocity, general safety of linear reconstruction at any discontinuity. limiter kinda like a switch? 
+Might need to check if the J\_B ratio actually is good at catching magnetic shocks. 
+
+If particles get too close together ($q_{ab} < q_\text{crit}$) we force the limiter to zero with $\kappa$ to help us dissipate noise. Possibly only relevant for hydro, might get rid of kappa for resistivity. Except if tests show that kappa is a beneficial shock/noise indicator. 
+\begin{equation}
+B'_{a} \equiv B_{a} - \frac{1}{2} \phi_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}
+\end{equation}
+
+\begin{equation}
+B'_{b} \equiv B_{b} + \frac{1}{2} \phi_{ba} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}
+\end{equation}
+
+\begin{equation}
+\phi_{ab} = \max\left[0, \min\left(1, \frac{4F_{ab}}{(1 + F_{ab})^2}\right)\right] \times \kappa_{ab}
+\end{equation}
+
+\begin{equation}
+\kappa_{ab} = \begin{cases} \exp\left\{-\left(\dfrac{q_{ab} - q_\text{crit}}{q_\text{fold}}\right)^2\right\} & \text{if } q_{ab} < q_\text{crit} \\ 1 & \text{if } q_{ab} \geq q_\text{crit} \end{cases}
+\end{equation}
+
+\begin{equation}
+q_{ab} \equiv \min(q_a, q_b)
+\end{equation}
+
+Mean interparticle spacing $q_\text{crit}$
+\begin{equation}
+q_\text{crit} \equiv \left(\frac{32\pi}{3 n b_a}\right)^{1/3}
+\end{equation}
+
+\begin{equation}
+F_{ab} \equiv \frac{\mathbf{x}_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}}{\mathbf{x}_{ab} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}}
+\end{equation}
