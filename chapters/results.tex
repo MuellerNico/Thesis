@@ -1,14 +1,30 @@
-\section{Results}
-Test cases, comparative const/switch/slr plots
+\section{Numerical Tests}
+Test cases, comparative const/switch/slr plots. Explain glass block setup
 
-Random figures (temporary):
-\section{Figures}
+Divergence Error: Show that divB stays bounded and decreases with increasing resolution. 
+
+\subsection{Alfven Wave}
+\subsection{Magnetized Sedov blast}
+\subsection{Advection loop}
+\subsection{Brio-Wu shocktube}
+\subsection{Orszag-Tang vortex}
+\subsection{MHD rotor}
+\subsection{Magnetized Kelvin-Helmholtz instability}
+\subsection{MHD Turbulence}
+
 \begin{figure}
     \centering    
     \includegraphics[width=0.49\linewidth]{img/Alfven/const1_alfven_b2_step2.png}
     \includegraphics[width=0.49\linewidth]{img/Alfven/switch_alfven_b2_step1.png}
     \includegraphics[width=0.49\linewidth]{img/Alfven/slr_alfven_b2_step2.png}
-    \caption{Alfven Wave ($\alpha_B=1$, switch, SLR}
+    \caption{Alfven Wave ($\alpha_B=1$, switch, SLR)}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{}
+    \caption{Caption}
     \label{fig:placeholder}
 \end{figure}
 
@@ -36,7 +52,7 @@ Random figures (temporary):
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{img/KH/slice_rho_step3_z+0.0000.png}
-    \caption{Kelvin-Helmholtz Instability: Careful, different test setup than Robert}
+    \caption{Kelvin-Helmholtz Instability. Note: direction switched compared to Robert}
     \label{fig:placeholder}
 \end{figure}
 
@@ -44,7 +60,15 @@ Random figures (temporary):
     \centering
     \includegraphics[width=0.45\linewidth]{img/MHD-Loop/slice_Bmag_step2_z+0.0000.png}
     \includegraphics[width=0.45\linewidth]{img/MHD-Loop/slice_alpha_B_step2_z+0.0000.png}
-    \caption{MHD Advection Loop: Problem for switch formulation with B being zero outside cylinder? Results in large alpha\_B. But then again there's nothing to dissipate.}
+    \caption{MHD Advection Loop with switch}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/comparative/a05_slice_Bmag_step2_z+0.0000.png}
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/comparative/slr_slice_Bmag_step2_z+0.0000.png}
+    \caption{MHD Loop: Const $\alpha_B = 0.5$ vs SLR}
     \label{fig:placeholder}
 \end{figure}
 
@@ -52,6 +76,6 @@ Random figures (temporary):
     \centering
     \includegraphics[width=0.45\linewidth]{img/Rotor/slice_Pmag_step0_z+0.0000_contour.png}
     \includegraphics[width=0.45\linewidth]{img/Rotor/slice_alpha_B_step0_z+0.0000.png}
-    \caption{MHD Rotor}
+    \caption{MHD Rotor. Robert reported noise with sphexa which I did not encounter.}
     \label{fig:placeholder}
 \end{figure}
