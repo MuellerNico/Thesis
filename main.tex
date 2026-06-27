@@ -14,9 +14,12 @@
 \usepackage{graphicx}
 \graphicspath{ {./images/} }
 \usepackage{amsmath}
+% \usepackage[style=authoryear, maxcitenames=1, mincitenames=1, uniquename=false, uniquelist=false]{biblatex}
+\usepackage[style=numeric]{biblatex}
+\addbibresource{references.bib}
 
 \title{Master Thesis \\ \vspace{0.5cm}
-    \small{Development and verification of MHD implementation of SPH-EXA}}
+    \small{Smoothed Particle Magnetohydrodynamics on Exascale computing systems}}
 
 \author{
     Nicolas Müller \\
@@ -27,28 +30,25 @@
 
 \begin{document}
 \maketitle
-\begin{abstract}
-This document for now serves as a dump for equations, plots and references and will later be turned into a proper report. \\ \\
-Code \href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}} \\
-Progress write-up: \href{https://docs.google.com/document/d/1CMsmUqyYXGIk8lybewA6jtJdwgMwquEbrGCqE1sCMbo/edit?usp=sharing}{\textbf{Google docs}}
-\end{abstract}
 
-% keywords can be removed
-%\keywords{First keyword \and Second keyword \and More}
-
+\input{chapters/abstract}
+% \setcounter{tocdepth}{2}
+% \tableofcontents
 \input{chapters/meta}
 \input{chapters/introduction}
 \input{chapters/theory}
 \input{chapters/implementation}
 \input{chapters/results}
+\input{chapters/performance}
 \input{chapters/discussion}
 
 \appendix
 \input{chapters/appendixA}
 
 \newpage
-\bibliographystyle{unsrt}  
-\bibliography{references}  
+\printbibliography
+% \bibliographystyle{unsrt}  
+% \bibliography{references}  
 
 
 \end{document}
