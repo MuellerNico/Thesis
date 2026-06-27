@@ -3,13 +3,28 @@ Test cases, comparative const/switch/slr plots. Explain glass block setup
 
 Divergence Error: Show that divB stays bounded and decreases with increasing resolution. 
 
+Show oscillations somehow that happen without resistivity? 
+
 \subsection{Alfven Wave}
+Comparison with analytic solution. Convergence with increased resolution. Reduced eMag loss with SLR. 
+
 \subsection{Magnetized Sedov blast}
+Plot 4 panels: density, Ekin, P, Pmag
+
 \subsection{Advection loop}
+Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. 
+
 \subsection{Brio-Wu shocktube}
+8 panel plot. Analytical? 
+
 \subsection{Orszag-Tang vortex}
+2D slice. eMag evolution
+
 \subsection{MHD rotor}
+Pmag slice.
+
 \subsection{Magnetized Kelvin-Helmholtz instability}
+
 \subsection{MHD Turbulence}
 
 \begin{figure}
@@ -74,8 +89,15 @@ Divergence Error: Show that divB stays bounded and decreases with increasing res
 
 \begin{figure}
     \centering
+    \includegraphics[width=0.8\linewidth]{img/MHD-Loop/compare_eMag_loop.pdf}
+    \caption{Loss of magnetic energy in MHD advection loop test}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
     \includegraphics[width=0.45\linewidth]{img/Rotor/slice_Pmag_step0_z+0.0000_contour.png}
     \includegraphics[width=0.45\linewidth]{img/Rotor/slice_alpha_B_step0_z+0.0000.png}
-    \caption{MHD Rotor. Robert reported noise with sphexa which I did not encounter.}
+    \caption{MHD Rotor. Robert tpreported noise with sphexa which I did not encounter.}
     \label{fig:placeholder}
 \end{figure}
