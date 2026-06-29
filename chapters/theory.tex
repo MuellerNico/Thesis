@@ -16,13 +16,16 @@ General overview of motivation/goals. Additional pairwise pressure term. Damp ou
 % S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
 % \end{equation}
 
-Start at maxwell or just jump to induction? 
-
-magnetic stress tensor (Lorentz force written in a convenient form for fluids). DivB constraint. 
+Start at maxwell or just jump to induction? DivB constraint. 
 
 Induction Equation
 \begin{equation}
     \frac{d\mathbf{B}}{dt} = (\mathbf{B}\cdot\nabla)\mathbf{v} - \mathbf{B}(\nabla\cdot\mathbf{v})
+\end{equation}
+
+Magnetic stress tensor (Lorentz force written in a convenient form for fluids). 
+\begin{equation}
+    todo
 \end{equation}
 
 Normalized divergence error
@@ -44,7 +47,7 @@ ISPH gradient operator
 
 $$\ddot{x}_{i,a} = -\sum_b m_b\Big[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a},\mathcal{A}{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b},\mathcal{A}_{i,ab}(h_b)\Big]$$
 
-\subsection{Artificial Resistivity}
+\subsection{Artificial Resistivity} 
 Discontinuities, stability, motivation. 
 
 Finite particles cannot represent a true discontinuity which would be true physical solution for a shock or sharp gradient. So energy in the sharp gradient has nowhere to go, can't propagate away cleanly. Instead bounces back as high-freq oscillations -> Gibbs-like ringing artifacts near shocks. Without dissipation those oscillations don't decay but grow and blow up solution. Just need to give energy somewhere to go, like a drain or lowpass filter at resolution scale. Rather dump energy locally than corrupt rest of solution. 
