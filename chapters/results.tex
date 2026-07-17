@@ -1,9 +1,20 @@
 \section{Numerical Tests}
 Test cases, comparative const/switch/slr plots. Explain glass block setup
+State kernel choice. 
 
 Divergence Error: Show that divB stays bounded and decreases with increasing resolution. 
 
 Show oscillations somehow that happen without resistivity? 
+
+Fields and cmaps
+\begin{itemize}
+    \item |B|: magma
+    \item density: bone\_r, gray\_r
+    \item gradients/heuristics: viridis
+\end{itemize}
+Plots with no titles. Mby remove top/right spines. Scatter with small markers + alpha. Fixed line color for line plots. 
+
+Note: ng0 is overwritten by test case parameters. Often 150 for MHD tests. Wissing uses 200. Other SPHEXA hydro tests 100. 
 
 \subsection{Alfven Wave}
 Comparison with analytic solution. Convergence with increased resolution. Reduced eMag loss with SLR. 
@@ -12,10 +23,15 @@ Comparison with analytic solution. Convergence with increased resolution. Reduce
 Plot 4 panels: density, Ekin, P, Pmag
 
 \subsection{Advection loop}
-Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. 
+Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. divB error without normalization. 
+
+Improve flow quality (less velocity noise): more neighbors, shock detector 
+
+So somehow: Best Emag conservation with SLR. But best structure with no SLR and no Switches (constant AV). Constant AV results in less variation in |v|. 
 
 \subsection{Brio-Wu shocktube}
 8 panel plot. Analytical? 
+Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-shock
 
 \subsection{Orszag-Tang vortex}
 2D slice. eMag evolution
@@ -29,7 +45,7 @@ Pmag slice.
 Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$. 
 
 \begin{equation}
-    \beta = \frac{P_{gas}}{P_{mag}} = \frac{\rho c^2}{B_0^2 / 2} \Rightarrow B_0 = \sqrt{2 \rho c^2 / \beta}
+    \beta = \frac{P_{gas}}{P_{mag}} = \frac{\rho c^2}{B_0^2 / 2 \mu_0} \Rightarrow B_0 = \sqrt{2 \rho c^2 / \beta}
 \end{equation}
 
 Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu_0 \rho}}$. $v_{RMS} = 0.3$ (subsonic). Sonic mach number $M = \frac{v_{RMS}}{c} = 0.3$. Alfvenic mach number $M_A = \frac{v_{RMS}}{v_A}=2$ (>1, super-alfvenic, turbulence dominates). 
@@ -118,9 +134,9 @@ Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/Turb/slice_rho_step2_y+0.0000.png}
-    \includegraphics[width=0.49\linewidth]{img/Turb/slice_vmag_step2_y+0.0000.png}
-    \includegraphics[width=0.49\linewidth]{img/Turb/slice_Bmag_step2_y+0.0000.png}
+    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_rho_step4_y+0.0000.png}
+    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_vmag_step4_y+0.0000.png}
+    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_Bmag_step4_y+0.0000.png}
     \caption{MHD turbulence using a mean magnetic field $B_0 \hat{z}$ with $B_0 = 0.15$}
     \label{fig:placeholder}
 \end{figure}
