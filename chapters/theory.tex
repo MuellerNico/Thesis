@@ -152,6 +152,8 @@ Conclusion: plain SLR ($F_{ab}$, no Balsara-like modulation) is still the best p
 
 \emph{Outlook:} fixing this without reintroducing the SLRV-family failure means using more of the gradient tensor's transverse information \emph{without} diluting the single-direction sensitivity that makes $F_{ab}$ work. One direction worth trying: keep the test single-direction and well-conditioned \emph{per pair} (so each comparison stays as sensitive as $F_{ab}$ is now), but probe a front from several different pair orientations at once -- e.g.\ require agreement across multiple neighbours with different $\mathbf{x}_{ab}$ directions before trusting reconstruction, rather than blending/aggregating a single pair's full tensor. That's different from what SLRV/SLRV2/SLRC did (aggregate 3 components \emph{within} one pair) -- it aggregates \emph{across pairs}, each of which stays a narrow, sensitive, single-direction test, so an unlucky orientation for one neighbour doesn't matter as long as others aren't also unlucky. Not attempted, no estimate of cost/complexity yet.
 
+Interesting and slightly ironic hypothesis on noise cleaning behavior: while vector limiter is mathematically better-behaved, the $F_{ab}$ has an "accidental" safeguard because RJBR is a noisy quantity and thus the ratio fragile/unstable, meaning reconstruction backs off in noisy regions. 
+
 \subsubsection{Artificial Conductivity}
 Subgrid entropy mixing at shocks (where there's a genuine discontinuity in entropy, not just density). In MHD specifically: smoothing small temperature spike that can form near shocks.
 
