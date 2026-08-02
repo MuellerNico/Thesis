@@ -52,6 +52,8 @@ Discontinuities, stability, motivation.
 
 Finite particles cannot represent a true discontinuity which would be true physical solution for a shock or sharp gradient. So energy in the sharp gradient has nowhere to go, can't propagate away cleanly. Instead bounces back as high-freq oscillations -> Gibbs-like ringing artifacts near shocks. Without dissipation those oscillations don't decay but grow and blow up solution. Just need to give energy somewhere to go, like a drain or lowpass filter at resolution scale. Rather dump energy locally than corrupt rest of solution. 
 
+NOTE: Velocity noise results in magnetic dissipation via the signal velocity
+
 \subsubsection{Classic}
 resistivity. dimensionless constant $\alpha_B$. signal velocity (old one?). 
 
@@ -103,7 +105,7 @@ Balsara factors: Don't work in MHD because we can't use divergence of B. Just us
 New idea: Use tricco \& price switch formulation for SLR modulation instead. It's just a steepness detector after all. Could be really nice if it works. Rubens modulator: Special B\_scale instead of just B norm to have more information about surroundings and add a B\_floor: 
 
 \begin{equation}
-    SB_a = min\{ 1, \frac{h_a \left\Vert \nabla\mathbf{B}_a \right\Vert_2}{B_{scale,a}}\}
+    modulator_a = min\{ 1, \frac{h_a \left\Vert \nabla\mathbf{B}_a \right\Vert_2}{B_{scale,a}}\}
 \end{equation}
 \begin{equation}
     B_{scale,a} = \sqrt{B_a^2 + \left< |B_b - B_a|^2 \right> + B_{floor}^2}
