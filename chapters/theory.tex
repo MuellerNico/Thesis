@@ -141,6 +141,8 @@ Tested on Brio-Wu and the Alfvén wave. Result: clearly worse than plain SLR. On
 
 Diagnosis: a captured shock is locally smeared to $\sim h$, i.e. locally linear. A pure consistency limiter (agreement between the two sides) can't tell "smooth resolved gradient" from "shock front that's currently smeared out" -- both look linear, so it opens reconstruction and turns dissipation off, the front re-steepens, limiter closes again, repeat. That's the ringing. Consistency answers "is it linear", not "is the variation on the resolution scale" -- need both, which is what the TP-style smallness modulator was actually doing on top of the $F_{ab}$ limiter. Separately, the hard clamp saturates to full cancellation when the correction and $B_{ab}$ disagree in sign, instead of rejecting the reconstruction outright, which kills dissipation for noise that happens to oppose the local gradient. So SLR + Balsara-like modulation stays the better formulation; the takeaway is that the smallness gate is load-bearing, not redundant.
 
+Interesting and slightly ironic hypothesis on noise cleaning behavior: while vector limiter is mathematically better-behaved, the $F_{ab}$ has an "accidental" safeguard because RJBR is a noisy quantity and thus the ratio fragile/unstable, meaning reconstruction backs off in noisy regions. 
+
 \subsubsection{Artificial Conductivity}
 Subgrid entropy mixing at shocks (where there's a genuine discontinuity in entropy, not just density). In MHD specifically: smoothing small temperature spike that can form near shocks.
 
