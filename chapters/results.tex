@@ -1,5 +1,5 @@
 \section{Numerical Tests}
-Test cases, comparative const/switch/slr plots. Explain glass block setup
+Test cases, comparative const/switch/slr plots. Explain glass block setup (relaxed/melted lattice. resolution numbers refer to these original lattices)
 State kernel choice. 
 
 Divergence Error: Show that divB stays bounded and decreases with increasing resolution. 
@@ -16,30 +16,48 @@ Plots with no titles. Mby remove top/right spines. Scatter with small markers + 
 
 Note: ng0 is overwritten by test case parameters. Often 150 for MHD tests. Wissing uses 200. Other SPHEXA hydro tests 100. 
 
+sinc 6 kernel. glass initial conditions (exception for loop). noise floor may negatively impact certain tests. but keep that because that's application? still some tests with constant AV to reduce noise impact and more cleanly isolate differences in AR schemes. constant AV smoothes noise which switches and SLR ignore (dissipation is pure harm in absence of shock). 
+
+divB error slightly larger than wissing in all tests. Velocity noise one of dominant sources. Discrete induction eq built from velocity gradient tensor. Flat plateau in divB error plot -> source limited, not cleaning limited. 
+
 \subsection{Alfven Wave}
-Comparison with analytic solution. Convergence with increased resolution. Reduced eMag loss with SLR. 
+Comparison with analytic solution. Convergence with increased resolution (order). Reduced eMag loss/dissipative heating with SLR. quantitative accuracy test. 
+
+\subsection{Brio-Wu shocktube}
+8 panel plot. Analytical (high res grid calc) solution. Test dissipation switches, reduce overshoot + oscillations. 
+
+Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-shock. Constant AV improves shape. 
 
 \subsection{Magnetized Sedov blast}
+Energy conservation under extreme compression. Most direct comparison to pure hydro test. 
+
 Plot 4 panels: density, Ekin, P, Pmag
 
 \subsection{Advection loop}
+divB control and numerical diffusion of B. 
+
 Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. divB error without normalization. 
 
 Improve flow quality (less velocity noise): more neighbors, shock detector 
 
-So somehow: Best Emag conservation with SLR. But best structure with no SLR and no Switches (constant AV). Constant AV results in less variation in |v|. 
+So somehow: Best Emag conservation with SLR but slight up and down. But best structure with no SLR and no Switches (constant AV). Constant AV results in less variation/noise in |v| and has less resistive heating (factor 2). So smooth flow retains structure but requires AV and AV dissipates magnetic energy. But with SLR the bending and stretching is kept in energy balance better? Stretch and then dissipate gained energy again. 
 
-\subsection{Brio-Wu shocktube}
-8 panel plot. Analytical? 
-Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-shock
+Velocity field noise. Also FCC melts into glass with available kernels. Fixed ng0 instead of density-proportional, iteratively-summed h gives force-error perturbations also in Wissing. 
+
+Danger of zero resistivity: Noise never smoothed out. Vel noise generates B noise via stretching or post shock. Something with effective magnetic Prandtl number? Sub-h noise invisible to shock detector (AVSW underdamp). But sub-h B noise triggers gradB\_norm modulator due to enormous gradients. Noise also unresolved structure like shocks. 
 
 \subsection{Orszag-Tang vortex}
+Robustness in multi-shock regime. Stability and divB cleaning when shocks collide. Density/pressure structure linecut vs reference. 
+
 2D slice. eMag evolution
 
 \subsection{MHD rotor}
+Angular momentum handling. divB cleaning under strong twisting. 
+
 Pmag slice.
 
 \subsection{Magnetized Kelvin-Helmholtz instability}
+Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
 
 \subsection{Subsonic MHD Turbulence}
 Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$. 
@@ -119,7 +137,7 @@ Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{img/MHD-Loop/compare_eMag_loop.pdf}
+    \includegraphics[width=0.8\linewidth]{img/eMagCompare/compare_eMag_4.pdf}
     \caption{Loss of magnetic energy in MHD advection loop test}
     \label{fig:placeholder}
 \end{figure}
