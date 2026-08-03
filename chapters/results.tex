@@ -12,7 +12,7 @@ Fields and cmaps
     \item density: bone\_r, gray\_r
     \item gradients/heuristics: viridis
 \end{itemize}
-Plots with no titles. Mby remove top/right spines. Scatter with small markers + alpha. Fixed line color for line plots. 
+Plots with no titles. Mby remove top/right spines. Scatter with small markers + alpha. Fixed line color for schemes in line plots. 
 
 Note: ng0 is overwritten by test case parameters. Often 150 for MHD tests. Wissing uses 200. Other SPHEXA hydro tests 100. 
 
@@ -22,6 +22,11 @@ divB error slightly larger than wissing in all tests. Velocity noise one of domi
 
 \subsection{Alfven Wave}
 Comparison with analytic solution. Convergence with increased resolution (order). Reduced eMag loss/dissipative heating with SLR. quantitative accuracy test. 
+
+Noisy Alfven Wave: testing noise cleaning capabilities of AR schemes. SLR results in less amplitude bleed and better noise cleaning at the same time compared to baseline. 
+
+SW is also noisier, just mention quickly, already rejected concept anyways. 
+
 
 \subsection{Brio-Wu shocktube}
 8 panel plot. Analytical (high res grid calc) solution. Test dissipation switches, reduce overshoot + oscillations. 
