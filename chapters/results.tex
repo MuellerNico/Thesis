@@ -16,7 +16,7 @@ Plots with no titles. Mby remove top/right spines. Scatter with small markers + 
 
 Note: ng0 is overwritten by test case parameters. Often 150 for MHD tests. Wissing uses 200. Other SPHEXA hydro tests 100. 
 
-sinc 6 kernel. glass initial conditions (exception for loop). noise floor may negatively impact certain tests. but keep that because that's application? still some tests with constant AV to reduce noise impact and more cleanly isolate differences in AR schemes. constant AV smoothes noise which switches and SLR ignore (dissipation is pure harm in absence of shock). 
+sinc 6 kernel. glass initial conditions (exception for loop). noise floor (kernel+glass) due to particle reordering may negatively impact certain tests. but keep that because that's application? still some tests with constant AV to reduce noise impact and more cleanly isolate differences in AR schemes. constant AV smoothes noise which switches and SLR ignore (dissipation is pure harm in absence of shock). Tested lattice but melts. 
 
 divB error slightly larger than wissing in all tests. Velocity noise one of dominant sources. Discrete induction eq built from velocity gradient tensor. Flat plateau in divB error plot -> source limited, not cleaning limited. 
 
@@ -29,8 +29,9 @@ SW is also noisier, just mention quickly, already rejected concept anyways.
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.6\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
-    \caption{Alfven Wave, nx=120. Define B2 and x1}
+    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
+    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_convergence.pdf}
+    \caption{CP Alfven Wave, nx=120. And convergence plot. Define B2 and x1}
     \label{fig:alfven}
 \end{figure}
 
