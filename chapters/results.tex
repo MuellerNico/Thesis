@@ -27,11 +27,33 @@ Noisy Alfven Wave: testing noise cleaning capabilities of AR schemes. SLR result
 
 SW is also noisier, just mention quickly, already rejected concept anyways. 
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
+    \caption{Alfven Wave, nx=120. Define B2 and x1}
+    \label{fig:alfven}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_amp.pdf}
+    \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_noise.pdf}
+    \caption{Noisy Alfven Wave: Amplitude bleed (fitted amplitude/initial amplitude) and noise cleaning rate. Adding white noise to B and v with noiseAmp=0.01. SLR wins out in both conserving the resolved structure (amplitude) and dissipating unresolved/uncorrelated noise. nx=120}
+    \label{fig:alfven_noise}
+\end{figure}
+
 
 \subsection{Brio-Wu shocktube}
 8 panel plot. Analytical (high res grid calc) solution. Test dissipation switches, reduce overshoot + oscillations. 
 
 Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-shock. Constant AV improves shape. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{img/Brio-Wu/shocktube_compare_step2.pdf}
+    \caption{Brio-Wu shocktube}
+    \label{fig:placeholder}
+\end{figure}
 
 \subsection{Magnetized Sedov blast}
 Energy conservation under extreme compression. Most direct comparison to pure hydro test. 
@@ -73,26 +95,19 @@ Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$.
 
 Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu_0 \rho}}$. $v_{RMS} = 0.3$ (subsonic). Sonic mach number $M = \frac{v_{RMS}}{c} = 0.3$. Alfvenic mach number $M_A = \frac{v_{RMS}}{v_A}=2$ (>1, super-alfvenic, turbulence dominates). 
 
-\begin{figure}
-    \centering    
-    \includegraphics[width=0.49\linewidth]{img/Alfven/const1_alfven_b2_step2.png}
-    \includegraphics[width=0.49\linewidth]{img/Alfven/switch_alfven_b2_step1.png}
-    \includegraphics[width=0.49\linewidth]{img/Alfven/slr_alfven_b2_step2.png}
-    \caption{Alfven Wave ($\alpha_B=1$, switch, SLR)}
-    \label{fig:placeholder}
-\end{figure}
+% \begin{figure}
+%     \centering    
+%     \includegraphics[width=0.49\linewidth]{img/Alfven/const1_alfven_b2_step2.png}
+%     \includegraphics[width=0.49\linewidth]{img/Alfven/switch_alfven_b2_step1.png}
+%     \includegraphics[width=0.49\linewidth]{img/Alfven/slr_alfven_b2_step2.png}
+%     \caption{Alfven Wave ($\alpha_B=1$, switch, SLR)}
+%     \label{fig:placeholder}
+% \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{img/Alfven/Alfven_wave_Emag_loss.pdf}
     \caption{Loss of magnetic energy in Alfven wave test}
-    \label{fig:placeholder}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{img/Brio-Wu/shocktube_step2.png}
-    \caption{Brio-Wu Shock Tube}
     \label{fig:placeholder}
 \end{figure}
 
