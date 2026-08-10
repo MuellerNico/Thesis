@@ -114,7 +114,7 @@ B'_{b} \equiv B_{b} + \frac{1}{2} \phi_{ba} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}
 q_{ab} \equiv \min(q_a, q_b)
 \end{equation}
 
-Mean interparticle spacing $q_\text{crit}$. kappa Frontiere close-pair guard. Probably irrelevant for MHD, since resistivity doesn't really address the problem of particle clustering the same way viscosity does. 
+Mean interparticle spacing $q_\text{crit}$. kappa Frontiere close-pair guard. Probably irrelevant for MHD, since resistivity doesn't really address the problem of particle clustering the same way viscosity does. But close pair interaction dominated by noise, so probably don't want to reconstruct there anyways. So mby keep. 
 \begin{equation}
 q_\text{crit} \equiv \left(\frac{32\pi}{3 n b_a}\right)^{1/3}
 \end{equation}
@@ -134,7 +134,7 @@ New idea: Use tricco \& price switch formulation for SLR modulation instead. It'
     B_{scale,a} = \sqrt{B_a^2 + \left< |B_b - B_a|^2 \right> + B_{floor}^2}
 \end{equation}
 
-\subsubsection{SLRV, SLRV2, SLRC (failed attempts)}
+\subsubsection{SLRV, SLRV2, SLRC (failed attempts) - notes to be rewritten}
 Idea: replace the $F_{ab}$ limiter with a vector van Leer using the full $\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$ instead of just its longitudinal (twice-$\mathbf{x}_{ab}$-contracted) projection, since B-discontinuities are mostly transverse (B\_normal continuous across MHD fronts, so $F_{ab}$ compares the least informative component). Also clamp the correction (minmod-style) so it can never exceed or flip the sign of $B_{ab}$, dropping $\kappa$ and the Tricco-Price modulator entirely (SLRV). Two follow-up ablations: same vector limiter without the clamp (SLRV2), and a per-component minmod between the two one-sided candidates $-\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$, $-\mathbf{J}_{B_b}\mathbf{x}_{ab}^T$ instead of a shared confidence number (SLRC).
 
 Tested on Brio-Wu and the (optionally noise-seeded) Alfvén wave. All three land in the same place, clearly worse than plain SLR: ring at the shock fronts on Brio-Wu, worse than the constant-$\alpha_B$ baseline; on the noisy wave they preserve the wave amplitude better than SLR (less bleed) but barely touch the injected noise (residual power $P_n$ stays $\sim$4$\times$ SLR's -- worse than doing nothing scheme-specific at all).
@@ -147,10 +147,7 @@ Conclusion: plain SLR ($F_{ab}$, no Balsara-like modulation) is still the best p
 
 \emph{Outlook:} fixing this without reintroducing the failures encountered means using more of the gradient tensor's transverse information \emph{without} diluting the single-direction sensitivity that makes $F_{ab}$ work. One direction worth trying: keep the test single-direction and well-conditioned \emph{per pair} (so each comparison stays as sensitive as $F_{ab}$ is now), but probe a front from several different pair orientations at once -- e.g.\ require agreement across multiple neighbours with different $\mathbf{x}_{ab}$ directions before trusting reconstruction, rather than blending/aggregating a single pair's full tensor. That's different from what SLRV/SLRV2/SLRC did (aggregate 3 components \emph{within} one pair) -- it aggregates \emph{across pairs}, each of which stays a narrow, sensitive, single-direction test, so an unlucky orientation for one neighbour doesn't matter as long as others aren't also unlucky.
 
-\subsubsection{Artificial Conductivity}
+\subsection{Artificial Conductivity}
 Subgrid entropy mixing at shocks (where there's a genuine discontinuity in entropy, not just density). In MHD specifically: smoothing small temperature spike that can form near shocks.
 
 Leaving out Wissings specific MHD shock capturing (eq 30) because AV scheme has different architecture than GASOLINE and doesn't need force direction. Detects convergence from velocity field itself instead rather than compressing force. Does not have this blindspot. BUT swapping AV signal speed for magnetosonic! 
-
-\subsection{Turbulence}
-Stirring. 
