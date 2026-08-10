@@ -20,6 +20,8 @@ sinc 6 kernel. glass initial conditions (exception for loop). noise floor (kerne
 
 divB error slightly larger than wissing in all tests. Velocity noise one of dominant sources. Discrete induction eq built from velocity gradient tensor. Flat plateau in divB error plot -> source limited, not cleaning limited. 
 
+resHeat plots always in combination with structural plots, L1 errors/divB error. Use deltaE diss / Emagt=0. Axis time. or just report final. 
+
 \subsection{Alfven Wave}
 Comparison with analytic solution. Convergence with increased resolution (order). Reduced eMag loss/dissipative heating with SLR. quantitative accuracy test. 
 
@@ -37,8 +39,8 @@ SW is also noisier, just mention quickly, already rejected concept anyways.
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_amp.pdf}
-    \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_noise.pdf}
+    \includegraphics[width=0.4\linewidth]{img/Alfven/noise/alfven_analysis_amp.pdf}
+    \includegraphics[width=0.4\linewidth]{img/Alfven/noise/alfven_analysis_noise.pdf}
     \caption{Noisy Alfven Wave: Amplitude bleed (fitted amplitude/initial amplitude) and noise cleaning rate. Adding white noise to B and v with noiseAmp=0.01. SLR wins out in both conserving the resolved structure (amplitude) and dissipating unresolved/uncorrelated noise. nx=120}
     \label{fig:alfven_noise}
 \end{figure}
@@ -86,25 +88,35 @@ const AV is only scheme that damps shear-noise. SLR subtracts fully (balsara). S
     \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
         \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}
-    \caption{MHD advection loop initial condition (top left) and results after t=20 periods using ARSLR 3 different AV schemes: AVSW (top right), AVSLR (bottom left) and constant AV $\alpha=1.0$ (bottom right). ToFix: slightly inconsistent color ranges.}
+    \caption{MHD advection loop initial condition (top left) and results after t=20 periods using ARSLR together with 3 different AV schemes: AVSW (top right), AVSLR (bottom left) and constant AV $\alpha=1.0$ (bottom right). Constant AR with $\alpha_B=0.5$ (Wissing form) gives almost identical results compared to ARSLR. Dominant factor is how aggressively AV schemes smooth $|\delta v|$. Velocity noise leads to two effects via its small scale unphysical transverse flow: $E_{mag}$ injection by stretching the field (small scale dynamo), and increased resistivity ($v_{sig,B}=|v_{ab} \times \hat{r}_{ab}|$). Two large noise driven terms which deteriorate the structure and pull $E_{mag}/E_{mag,0}$ away from 1.0, direction depending on which one dominates.}
     \label{fig:placeholder}
 \end{figure}
 
+Insert: "MHD loop: velocity noise, the numerical dynamo, and why eMag lies" from notes folder. 
 
 \subsection{Orszag-Tang vortex}
 Robustness in multi-shock regime. Stability and divB cleaning when shocks collide. Density/pressure structure linecut vs reference. 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000.pdf}
+    \includegraphics[]{}
+    % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000_120.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000_120.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000.pdf}
     \caption{OT vortex at times t=0.5 and t=1.0. nx=120 (left), nx=240 (right)}
     \label{fig:placeholder}
 \end{figure}
-
+\begin{verbatim}
+python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
+\end{verbatim}
 
 \subsection{MHD rotor}
 Angular momentum handling. divB cleaning under strong twisting. 
+
+The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$, using a relaxed glass. The ambient medium (ρ = 1) is sampled at a mean particle spacing $Δ = 1/n_x$ with $n_x = 270$ (2.19 × 10⁶ particles), equivalent to Wissing & Shen (2020)'s [256, 296, 12] close-packed setup in linear resolution; our slab is 30 particle spacings thick rather than 12. The dense cylinder (ρ = 10, R = 0.1) is sampled at Δ/√10 in x and y at unchanged z spacing.
+
+anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/√10, z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
 
 \begin{figure}
     \centering
@@ -117,6 +129,9 @@ Angular momentum handling. divB cleaning under strong twisting.
 Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
 
 \subsection{Subsonic MHD Turbulence}
+
+Application. DivB error + resistive heating. 
+
 Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$. 
 
 \begin{equation}
@@ -124,6 +139,8 @@ Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$.
 \end{equation}
 
 Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu_0 \rho}}$. $v_{RMS} = 0.3$ (subsonic). Sonic mach number $M = \frac{v_{RMS}}{c} = 0.3$. Alfvenic mach number $M_A = \frac{v_{RMS}}{v_A}=2$ (>1, super-alfvenic, turbulence dominates). 
+
+Ruben video demo: Trans-alfvenic
 
 % \begin{figure}
 %     \centering    
