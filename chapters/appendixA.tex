@@ -16,6 +16,7 @@ divBerr diagnostic unreliable on domains with B=0 regions/spots.
 Using SLR: \texttt{T du\_diss = diss\_op * dot(B\_ab\_raw, B\_ab);} instead of \texttt{norm2(B\_ab)}.
 energy conjugate of dBdiss: dE\_B/dt goes as B\_ab . B'\_ab, not |B'\_ab|2. Identical for the non-reconstructing schemes (B'\_ab == B\_ab). The transverse part of the SLR correction does no work on the field, so charging heat for it would leak energy.
 
+No block time step. self-gravitating MHD untested (timestep control, limit lorentz force movement)
 
 Code \href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}}
 

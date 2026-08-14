@@ -1,4 +1,14 @@
 \section{Introduction}
 SPH, MHD, application areas, problems, other work/software. 
 
-Existing work vs unique extension: Debug, improve (non-symmetric kernels), formalize, diagnostics, resistivity work, merge, test cases, validation. 
+Smoothed-particle hydrodynamics (SPH) is a particle-based Lagrangian method used to simulate multidimensional fluids, most commonly employed in astrophysics, cosmology and computational fluid-dynamics. First developed by Gingold and Monaghan\cite{SPH-original} and Lucy\cite{SPH-original-2} in 1977, it can outshine traditional grid-based Eulerian codes in some key areas like its natural conservation properties \cite{Rosswog2009}, the handling of free surfaces and fluid interfaces \cite{He2024}, adaptive resolution \cite{Price2010comparison} and it integrates well with fast gravity solvers for self-gravitating systems in astrophysical simulations. 
+
+Because magnetic fields are
+
+SPH-EXA is a high-performance \texttt{C++} simulation code developed by the University of Basel for performing SPH simulation on Exascale computing systems. It is parallelized with \texttt{MPI}, \texttt{OpenMP}, \texttt{CUDA}, and \texttt{HIP} to enable scientific calculations with billions of particles running on thousands of hybrid CPU-GPU nodes. 
+
+\textit{mhd impl, diagnostics, "merge"}
+
+In this thesis paper, we briefly touch on the fundamentals of the SPH discretizations and how they are implemented in SPH-EXA using an integral approach to derivation. Then we present the newly added implementation of magnetic field calculations based on other state-of-the-art SPMHD codes, namely PHANTOM \cite{Price2018} and GASOLINE2 \cite{WissingShen2020}. During this, we will give special focus to the treatment of discontinuities through artificial viscosity and artificial resisitivity. We then conduct a series of numerical tests as a verification suite to ensure that our implementation produces results comparable to other software in commonly simulated problems. There we also study the impact of different artificial resisitivity schemes. We study the performance and scaling of the code and quantify how much the inclusion of MHD calculations impacts runtime. Finally, the findings are discussed and next steps are outlined. 
+
+It is important to properly credit Lukas Schmidt (Uni Basel) at this point, who wrote considerable parts of the current MHD module in SPH-EXA and left behind a basic but functional implementation. The bulk work of this thesis project could therefore be focused on validating, correcting, extending and formalizing this implementation rather than building it from scratch. 
