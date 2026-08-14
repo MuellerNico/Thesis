@@ -97,13 +97,25 @@ const AV is only scheme that damps shear-noise. SLR subtracts fully (balsara). S
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/INIT_slice_Bmag_step0_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
-        \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/INIT_slice_Bmag_step0_z+0.0000.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
+    % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}
+    \includegraphics[width=\linewidth]{img/MHD-Loop/slice_Bmag_step0_z+0.0000_panels.pdf}
     \caption{MHD advection loop initial condition (top left) and results after t=20 periods using ARSLR together with 3 different AV schemes: AVSW (top right), AVSLR (bottom left) and constant AV $\alpha=1.0$ (bottom right). Constant AR with $\alpha_B=0.5$ (Wissing form) gives almost identical results compared to ARSLR. Dominant factor is how aggressively AV schemes smooth $|\delta v|$. Velocity noise leads to two effects via its small scale unphysical transverse flow: $E_{mag}$ injection by stretching the field (small scale dynamo), and increased resistivity ($v_{sig,B}=|v_{ab} \times \hat{r}_{ab}|$). Two large noise driven terms which deteriorate the structure and pull $E_{mag}/E_{mag,0}$ away from 1.0, direction depending on which one dominates.}
     \label{fig:placeholder}
 \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{verbatim}
+python sphexa/scripts/plot_slice.py out/9533596_SLR_avswitches/dump.h5 0 out/9533596_SLR_avswitches/dump.h5 3 out/7983967_Loop_SLR/dump.h5 3 out/9482508_Loop_SLR_noavslr/dump.h5 3 --clean --resolution 512 --label-time --labels IC AVSW AVSLR AV --cmap magma --xlim -0.5 0.5 --field Bmag
+\end{verbatim}
 
 Insert: "MHD loop: velocity noise, the numerical dynamo, and why eMag lies" from notes folder. 
 
