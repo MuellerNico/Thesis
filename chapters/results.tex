@@ -71,8 +71,12 @@ Plot 4 panels: density, Ekin, P, Pmag
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{img/sedov/slice_rho_step2_y+0.0000.png}
-    \caption{Magnetic Sedov Blast}
+    % \includegraphics[width=0.8\linewidth]{img/sedov/slice_rho_step2_y+0.0000.png}
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/INIT_slice_Bmag_step0_z+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}    
+    \caption{Magnetic Sedov Blast: Density, Ekin, P, Pmag=Emag}
     \label{fig:placeholder}
 \end{figure}
 
@@ -108,8 +112,8 @@ const AV is only scheme that damps shear-noise. SLR subtracts fully (balsara). S
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.5\linewidth]{}
-    \caption{Caption}
+    \includegraphics[width=\linewidth]{img/MHD-Loop/AR_scheme_slice_Bmag_step3_z+0.0000_panels.pdf}
+    \caption{MHD advection loop: No AR vs $\alpha_B=0.5$ vs SLR. All using constant AV.}
     \label{fig:placeholder}
 \end{figure}
 
