@@ -1,10 +1,27 @@
 \section{Theory}
 \subsection{Classic SPH Theory}
-At its core, the SPH method solves the Euler equations by evolving an ensemble of macro-particles. The mean inter-particle spacing is represented by the smoothing length $h$. The particles hold local values for physical quantities, they are our interpolation-points. Between the particles, these are evaluated through summation using a smoothing kernel $W(r_{ab},h)$ with characteristic length $h$. Derivatives are calculated without of finite differences by using the known analytic form of the kernel derivative, i.e. we use the exact derivative of the approximated function. 
+To describe a hydrodynamic system we need to solve the Euler equations. In the Lagrangian form, the continuity equation (conservation of mass), the momentum equation (conservation of momentum) and the energy equation (conservation of energy) read as follows: 
+
+\begin{align}
+\frac{d\rho}{dt} &= -\rho \nabla \cdot \vec{v}, \\
+\frac{d\vec{v}}{dt} &= -\frac{\nabla P}{\rho} + \vec{f}, \\
+\frac{du}{dt} &= \frac{P}{\rho^2}\frac{d\rho}{dt} = -\frac{P}{\rho}\nabla \cdot \vec{v}.
+\end{align}
+
+The SPH method solves the Euler equation by evolving an ensemble of macro-particles (discrete interpolation-points) representing the fluid. Properties of the field at the location of a particle $a$ (e.g. density $\rho_a$) are then approximated using a kernel sum over neighboring particles $b$.
+
+todo: replace with general formulation:
+\begin{equation}
+\rho_a = \sum_b m_b W(|\vec{r}_a - \vec{r}_b|, h_a),
+\end{equation}
+where $W$ is the smoothing kernel with smoothing length $h$ and $m$ is the mass of the particle.   
+
+%The mean inter-particle spacing is represented by the smoothing length $h$. 
+Derivatives are calculated without finite differences by using the known analytic form of the kernel derivative, i.e. we use the exact derivative of the approximated function. 
 
 \begin{equation}
-todo: derivatives
-    \label{eq:derivatives}
+\nabla f(\vec{r}) = \sum_b \frac{m_b}{\rho_b} f_b \nabla W(\vec{r} - \vec{r}_b, h),
+\label{eq:derivatives}
 \end{equation}
 
 Euler equations. Particles, neighbors and kernels. Volume elements and gradient evaluation. gradh (chainrule origin, variable smoothing lengths). Conservation vs accuracy. TSPH vs GDSPH vs ISPH .
@@ -30,11 +47,6 @@ General overview of motivation/goals. Additional pairwise pressure term. Damp ou
 % P_\text{mag} = \frac{|B|^2}{2\mu_0} = \frac{B_x^2 + B_y^2 + B_z^2}{2\mu_0}    
 % \end{equation}
 
-% MHD Stress Tensor
-% \begin{equation}
-% S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
-% \end{equation}
-
 Start at maxwell or just jump to induction? DivB constraint. 
 
 Induction Equation
@@ -44,7 +56,7 @@ Induction Equation
 
 Magnetic stress tensor (Lorentz force written in a convenient form for fluids). 
 \begin{equation}
-    todo
+S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
 \end{equation}
 
 Normalized divergence error
@@ -53,14 +65,10 @@ Normalized divergence error
 \end{equation}
 
 Divergence cleaning
-\begin{equation}
-    \left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla\psi \\ 
-\end{equation}
-
-\begin{equation}
-\frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h\,\nabla\cdot\mathbf{B} 
-  - \frac{1}{\tau}\frac{\psi}{c_h} - \frac{1}{2}\psi(\nabla\cdot\mathbf{v})
-\end{equation}
+\begin{align}
+\left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla\psi \\
+\frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h\,\nabla\cdot\mathbf{B} - \frac{1}{\tau}\frac{\psi}{c_h} - \frac{1}{2}\psi(\nabla\cdot\mathbf{v})
+\end{align}
 
 
 
