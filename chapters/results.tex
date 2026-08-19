@@ -45,12 +45,12 @@ SW is also noisier, just mention quickly, already rejected concept anyways.
     \label{fig:alfven_noise}
 \end{figure}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{img/Alfven/Alfven_wave_Emag_loss.pdf}
-    \caption{Loss of magnetic energy in Alfven wave test (remove, already got amplitude bleed)}
-    \label{fig:placeholder}
-\end{figure}
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.8\linewidth]{img/Alfven/Alfven_wave_Emag_loss.pdf}
+%     \caption{Loss of magnetic energy in Alfven wave test (remove, already got amplitude bleed)}
+%     \label{fig:placeholder}
+% \end{figure}
 
 \subsection{Brio-Wu shocktube}
 8 panel plot. Analytical (high res grid calc) solution. Test dissipation switches, reduce overshoot + oscillations. 
@@ -67,15 +67,17 @@ Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-sh
 \subsection{Magnetized Sedov blast}
 Energy conservation under extreme compression. Most direct comparison to pure hydro test. 
 
+Shock front less sharp.
+
 Plot 4 panels: density, Ekin, P, Pmag
 
 \begin{figure}
     \centering
     % \includegraphics[width=0.8\linewidth]{img/sedov/slice_rho_step2_y+0.0000.png}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/INIT_slice_Bmag_step0_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}    
+    \includegraphics[width=0.49\linewidth]{img/sedov/slice_rho_step2_y+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/sedov/slice_KE_step2_y+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/sedov/slice_p_step2_y+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/sedov/slice_Pmag_step2_y+0.0000.pdf}
     \caption{Magnetic Sedov Blast: Density, Ekin, P, Pmag=Emag}
     \label{fig:placeholder}
 \end{figure}
@@ -144,6 +146,14 @@ Robustness in multi-shock regime. Stability and divB cleaning when shocks collid
     \label{fig:placeholder}
 \end{figure}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
+    \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
+    \caption{Orszag-Tang: Pressure slices at t=0.5 along y=0.3125 and y=0.4277 in z=0 plane for different numerical resolutions. To be compared with Price 2018}
+    \label{fig:placeholder}
+\end{figure}
+
 \begin{verbatim}
 python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
 \end{verbatim}
@@ -151,9 +161,9 @@ python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_
 \subsection{MHD rotor}
 Angular momentum handling. divB cleaning under strong twisting. 
 
-The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$, using a relaxed glass. The ambient medium (ρ = 1) is sampled at a mean particle spacing $Δ = 1/n_x$ with $n_x = 270$ (2.19 × 10⁶ particles), equivalent to Wissing & Shen (2020)'s [256, 296, 12] close-packed setup in linear resolution; our slab is 30 particle spacings thick rather than 12. The dense cylinder (ρ = 10, R = 0.1) is sampled at Δ/√10 in x and y at unchanged z spacing.
+The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$, using a relaxed glass. The ambient medium ($\rho$ = 1) is sampled at a mean particle spacing $\Delta = 1/n_x$ with $n_x = 270$ (2.19 $\times$ $10^6$ particles), equivalent to Wissing \& Shen (2020)'s [256, 296, 12] close-packed setup in linear resolution; our slab is 30 particle spacings thick rather than 12. The dense cylinder ($\rho$ = 10, R = 0.1) is sampled at $\Delta$/sqrt(10) in x and y at unchanged z spacing.
 
-anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/√10, z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
+anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/sqrt(10), z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
 
 \begin{figure}
     \centering
@@ -164,6 +174,7 @@ anisotropically sampled (different from wissing)!! compresses the inner glass in
 
 \subsection{Magnetized Kelvin-Helmholtz instability}
 Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
+t=1.6 hydro rolls look like the GDSPH panels, not TSPH. Thin arms, no blobbing, no visible surface-tension gaps at the interface. new VE scheme?
 
 \begin{figure}
     \centering
