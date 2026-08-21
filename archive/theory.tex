@@ -1,0 +1,166 @@
+\section{Theory}
+\subsection{Classic SPH Theory}
+To describe a hydrodynamic system we need to solve the Euler equations. In the Lagrangian form, the continuity equation (conservation of mass), the momentum equation (conservation of momentum) and the energy equation (conservation of energy) read as follows: 
+
+\begin{align}
+\frac{d\rho}{dt} &= -\rho \nabla \cdot \vec{v}, \\
+\frac{d\vec{v}}{dt} &= -\frac{\nabla P}{\rho} + \vec{f}, \\
+\frac{du}{dt} &= \frac{P}{\rho^2}\frac{d\rho}{dt} = -\frac{P}{\rho}\nabla \cdot \vec{v}.
+\end{align}
+
+The SPH method solves the Euler equation by evolving an ensemble of macro-particles (discrete interpolation-points) representing the fluid. Properties of the field at the location of a particle $a$ (e.g. density $\rho_a$) are then approximated using a kernel sum over neighboring particles $b$.
+
+todo: replace with general formulation:
+\begin{equation}
+\rho_a = \sum_b m_b W(|\vec{r}_a - \vec{r}_b|, h_a),
+\end{equation}
+where $W$ is the smoothing kernel with smoothing length $h$ and $m$ is the mass of the particle.   
+
+%The mean inter-particle spacing is represented by the smoothing length $h$. 
+Derivatives are calculated without finite differences by using the known analytic form of the kernel derivative, i.e. we use the exact derivative of the approximated function. 
+
+\begin{equation}
+\nabla f(\vec{r}) = \sum_b \frac{m_b}{\rho_b} f_b \nabla W(\vec{r} - \vec{r}_b, h),
+\label{eq:derivatives}
+\end{equation}
+
+Euler equations. Particles, neighbors and kernels. Volume elements and gradient evaluation. gradh (chainrule origin, variable smoothing lengths). Conservation vs accuracy. TSPH vs GDSPH vs ISPH .
+
+\subsection{ISPH}
+
+ISPH: (IAD/GVE) discretization. Perfect conservation but not perfect linear interpolation. Partition of unity (makes interpolation nearly exact), strong when disordered particles or near discontinuities. Accounts for uneven sampling in space (similar to weighted least squares). 
+
+ISPH gradient operator
+
+\begin{equation}
+\ddot{x}_{i,a} = -\sum_b m_b\Big[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a},\mathcal{A}{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b},\mathcal{A}_{i,ab}(h_b)\Big]
+\end{equation}
+
+Also quickly mention GDSPH maybe. Strong with density discontinuities at contact surfaces (e.g. 2 different mediums). 
+
+\subsection{Artificial Viscosity}
+General overview of motivation/goals. Additional pairwise pressure term. Damp out shocks and deposit energy as heat. Techniques (Monaghan, divv gating, switch (dynamically adjust), avclean, SLR, balsara modulation). Signal velocity (magnetosonic). 
+
+\subsection{MHD Equations}
+% Magnetic Pressue
+% \begin{equation}
+% P_\text{mag} = \frac{|B|^2}{2\mu_0} = \frac{B_x^2 + B_y^2 + B_z^2}{2\mu_0}    
+% \end{equation}
+
+Start at maxwell or just jump to induction? DivB constraint. 
+
+Induction Equation
+\begin{equation}
+    \frac{d\mathbf{B}}{dt} = (\mathbf{B}\cdot\nabla)\mathbf{v} - \mathbf{B}(\nabla\cdot\mathbf{v})
+\end{equation}
+
+Magnetic stress tensor (Lorentz force written in a convenient form for fluids). 
+\begin{equation}
+S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
+\end{equation}
+
+Normalized divergence error
+\begin{equation}
+\epsilon_{\mathrm{divB}} = \frac{h\,|\nabla\cdot\mathbf{B}|}{|\mathbf{B}|}
+\end{equation}
+
+Divergence cleaning
+\begin{align}
+\left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla\psi \\
+\frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h\,\nabla\cdot\mathbf{B} - \frac{1}{\tau}\frac{\psi}{c_h} - \frac{1}{2}\psi(\nabla\cdot\mathbf{v})
+\end{align}
+
+
+
+\subsection{Artificial Resistivity} 
+Discontinuities, stability, motivation. 
+
+Finite particles cannot represent a true discontinuity which would be true physical solution for a shock or sharp gradient. So energy in the sharp gradient has nowhere to go, can't propagate away cleanly. Instead bounces back as high-freq oscillations -> Gibbs-like ringing artifacts near shocks. Without dissipation those oscillations don't decay but grow and blow up solution. Just need to give energy somewhere to go, like a drain or lowpass filter at resolution scale. Rather dump energy locally than corrupt rest of solution. Tangential and rotational discontinuities require AR (no compression there. vsig=0, compression is AVs job). fast and slow shock via AV? Contact discontinuity neither (ideally). 
+
+"pulling B vectors of neighboring particles towards each other". Jump survives as a ramp of width ~h, best that SPH can represent.
+
+NOTE: Velocity noise results in magnetic dissipation via the signal velocity
+
+\subsubsection{Classic}
+resistivity. dimensionless constant $\alpha_B$. signal velocity (old one?). no gating like AV. 
+
+\subsubsection{Switches}
+Tricco \& Price switch. They used different signal velocity though. Later replaced switch with current signal velocity. For clean comparison need to run with old v\_sig
+
+\begin{equation}
+\alpha_{B,a} = \frac{h_a\,\left\Vert \nabla\mathbf{B}_a \right\Vert_2}{|\mathbf{B}_a|}, \qquad \alpha_B \in [0,\,1]
+\end{equation}
+
+\subsubsection{Self-Switching vsigB}
+Price. 
+
+\subsubsection{SLR}
+Subtract linear component to remove dissipation in smooth flow. The reconstruction is a filter, it changes which vector gets dissipated. 
+
+In resolved gradient with noise: With switch/v\_sig stuff dissipation of resolved structure and noise happens proportionally. Tradoff: protect structure vs clean noise. After SLR subtraction, residual \textit{is} the noise, can dissipate at full alphaB=1, while resolved gradient is dissipated at almost zero (to gradient accuracy). Single scalar can't replicate this. 
+
+But reconstruction dangerous at shocks (overshoots/monotonicity violations, see TVD limiters). Need limiter to compare jacobians and only apply reconstruction if both sides "aggree", i.e. have very similar jacobians. This also shuts down reconstruction in white/uncorrelated noise. 
+
+Van Leer-style limiters not specific to velocity, general safety of linear reconstruction at any discontinuity. limiter kinda like a switch? 
+Might need to check if the J\_B ratio actually is good at catching magnetic shocks. 
+
+If particles get too close together ($q_{ab} < q_\text{crit}$) we force the limiter to zero with $\kappa$ to help us dissipate noise. Possibly only relevant for hydro, might get rid of kappa for resistivity. Except if tests show that kappa is a beneficial shock/noise indicator. 
+\begin{equation}
+B'_{a} \equiv B_{a} - \frac{1}{2} \phi_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}
+\end{equation}
+
+\begin{equation}
+B'_{b} \equiv B_{b} + \frac{1}{2} \phi_{ba} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}
+\end{equation}
+
+\begin{equation}
+\phi_{ab} = \max\left[0, \min\left(1, \frac{4F_{ab}}{(1 + F_{ab})^2}\right)\right] \times \kappa_{ab}
+\end{equation}
+
+\begin{equation}
+\kappa_{ab} = \begin{cases} \exp\left\{-\left(\dfrac{q_{ab} - q_\text{crit}}{q_\text{fold}}\right)^2\right\} & \text{if } q_{ab} < q_\text{crit} \\ 1 & \text{if } q_{ab} \geq q_\text{crit} \end{cases}
+\end{equation}
+
+\begin{equation}
+q_{ab} \equiv \min(q_a, q_b)
+\end{equation}
+
+Mean interparticle spacing $q_\text{crit}$. kappa Frontiere close-pair guard. Probably irrelevant for MHD, since resistivity doesn't really address the problem of particle clustering the same way viscosity does. But close pair interaction dominated by noise, so probably don't want to reconstruct there anyways. So mby keep. 
+\begin{equation}
+q_\text{crit} \equiv \left(\frac{32\pi}{3 n b_a}\right)^{1/3}
+\end{equation}
+
+\begin{equation}
+F_{ab} \equiv \frac{\mathbf{x}_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}}{\mathbf{x}_{ab} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}}
+\end{equation}
+
+Balsara factors: Don't work in MHD because we can't use divergence of B. Just use curlB/normB or smth? 
+
+New idea: Use tricco \& price switch formulation for SLR modulation instead. It's just a steepness detector after all. Could be really nice if it works. Rubens modulator: Special B\_scale instead of just B norm to have more information about surroundings and add a B\_floor: 
+
+\begin{equation}
+    modulator_a = min\{ 1, \frac{h_a \left\Vert \nabla\mathbf{B}_a \right\Vert_2}{B_{scale,a}}\}
+\end{equation}
+\begin{equation}
+    B_{scale,a} = \sqrt{B_a^2 + \left< |B_b - B_a|^2 \right> + B_{floor}^2}
+\end{equation}
+Idea: vector van Leer using the full $\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$ + clamp to avoid overshoot. Fab compares single fixed direction. For hydro AV the dissipated quanity $\omega_{ab}=\mathbf{v}_{ab}\cdot\hat{\mathbf{x}}_{ab}$ is scalar along pair direction. But AR it's full $B_ab$ but we have rotational fronts, current sheets (transverse). Doesn't bite in Brio-Wu cause field varies only along x. -> somehow use more gradient tensor information without reducing/diluting sensitivity. 
+
+% \subsubsection{SLRV, SLRV2, SLRC (failed attempts) - notes to be rewritten}
+% Idea: replace the $F_{ab}$ limiter with a vector van Leer using the full $\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$ instead of just its longitudinal (twice-$\mathbf{x}_{ab}$-contracted) projection, since B-discontinuities are mostly transverse (B\_normal continuous across MHD fronts, so $F_{ab}$ compares the least informative component). Also clamp the correction (minmod-style) so it can never exceed or flip the sign of $B_{ab}$, dropping $\kappa$ and the Tricco-Price modulator entirely (SLRV). Two follow-up ablations: same vector limiter without the clamp (SLRV2), and a per-component minmod between the two one-sided candidates $-\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$, $-\mathbf{J}_{B_b}\mathbf{x}_{ab}^T$ instead of a shared confidence number (SLRC).
+
+% Tested on Brio-Wu and the (optionally noise-seeded) Alfvén wave. All three land in the same place, clearly worse than plain SLR: ring at the shock fronts on Brio-Wu, worse than the constant-$\alpha_B$ baseline; on the noisy wave they preserve the wave amplitude better than SLR (less bleed) but barely touch the injected noise (residual power $P_n$ stays $\sim$4$\times$ SLR's -- worse than doing nothing scheme-specific at all).
+
+% The van Leer limiter is designed to approach zero whenever the local linear estimator stops being accurate, discontinuity or noise. $F_{ab}$ tests consistency along a single fixed direction ($\mathbf{x}_{ab}$, contracted twice), so local disagreement has nowhere to hide. The vector-based variants compare the full 3-vector $\mathbf{J}_B\mathbf{x}_{ab}^T$ on each side; noise that disrupts one component can still be outvoted/diluted by the other two agreeing (blend) or by both sides' per-component estimates rarely disagreeing in sign to begin with (minmod), since $\mathcal{O}(150)$-neighbour gradient smoothing suppresses noise similarly on all 3 components at once. Same designed sensitivity, just diluted by aggregating over more directions/components than the scalar test does.
+
+% Conclusion: plain SLR ($F_{ab}$, no Balsara-like modulation) is still the best performer on both fronts and noise; SLRB is statistically indistinguishable from it. Fixing the vector family properly would mean not diluting the agreement test across components while still using more of the gradient tensor, not a better limiter shape on top of the current one -- bigger rework, not pursued further given the time budget. Branch closed.
+
+% \textbf{Open concern with plain SLR (not yet tested):} $F_{ab}$'s testing scope is narrow. For AV on velocity, the dissipated quantity $\omega_{ab}=\mathbf{v}_{ab}\cdot\hat{\mathbf{x}}_{ab}$ is itself a scalar along the pair direction by construction (Balsara: exclude transverse/shear motion from dissipation on purpose), so the test and the dissipated content live in the same 1D subspace -- no mismatch possible. For AR, the dissipated content is the full $B_{ab}$ vector, and MHD discontinuities (rotational fronts, current sheets) are mostly transverse -- so a single-direction test gating a 3-component correction is a new mismatch introduced specifically by porting SLR from velocity to the induction equation. In Brio-Wu this doesn't bite because the field only varies along $x$, so any pair's $\mathbf{x}_{ab}$ samples the true (x-only) gradient regardless of which B-component carries the jump. It's untested whether this holds for genuinely oblique/multi-dimensional fronts (Orszag-Tang, rotor, turbulence, reconnection): a pair whose separation happens to sit near-perpendicular to the true local gradient direction gets an ill-conditioned, essentially arbitrary $F_{ab}$ regardless of how large the real transverse jump is -- plausibly giving orientation-dependent, patchy shock capture across a single front rather than the clean, direction-independent behaviour seen in the aligned 1D case.
+
+% \emph{Outlook:} fixing this without reintroducing the failures encountered means using more of the gradient tensor's transverse information \emph{without} diluting the single-direction sensitivity that makes $F_{ab}$ work. One direction worth trying: keep the test single-direction and well-conditioned \emph{per pair} (so each comparison stays as sensitive as $F_{ab}$ is now), but probe a front from several different pair orientations at once -- e.g.\ require agreement across multiple neighbours with different $\mathbf{x}_{ab}$ directions before trusting reconstruction, rather than blending/aggregating a single pair's full tensor. That's different from what SLRV/SLRV2/SLRC did (aggregate 3 components \emph{within} one pair) -- it aggregates \emph{across pairs}, each of which stays a narrow, sensitive, single-direction test, so an unlucky orientation for one neighbour doesn't matter as long as others aren't also unlucky.
+
+\subsection{Artificial Conductivity}
+Subgrid entropy mixing at shocks (where there's a genuine discontinuity in entropy, not just density). In MHD specifically: smoothing small temperature spike that can form near shocks.
+
+Leaving out Wissings specific MHD shock capturing (eq 30) because AV scheme has different architecture than GASOLINE and doesn't need force direction. Detects convergence from velocity field itself instead rather than compressing force. Does not have this blindspot. BUT swapping AV signal speed for magnetosonic! 
+

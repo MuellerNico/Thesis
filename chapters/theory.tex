@@ -1,165 +1,533 @@
+% maybe remove all the Rosswog references? 
+
 \section{Theory}
-\subsection{Classic SPH Theory}
-To describe a hydrodynamic system we need to solve the Euler equations. In the Lagrangian form, the continuity equation (conservation of mass), the momentum equation (conservation of momentum) and the energy equation (conservation of energy) read as follows: 
+\label{sec:theory}
 
+This chapter establishes the mathematical and numerical foundation for the smoothed particle magnetohydrodynamics (SPMHD) implementation within SPH-EXA. We briefly introduce the core concepts of SPH, then develop the integral approach to derivatives (IAD) and generalized volume elements that characterize the ISPH formulation used in SPH-EXA. We extend this methodology to ideal magnetohydrodynamics, presenting the necessary dissipation mechanisms including artificial viscosity, resistivity, and conductivity, along with a divergence-cleaning scheme for numerical stability.
+
+The equations presented here reflect the actual implementation in three spatial dimensions in the code, with explicit mention of where our discretization choices diverge from the reference works. 
+
+\subsection{Smoothed Particle Hydrodynamics}
+\label{sec:sph}
+
+Smoothed particle hydrodynamics (SPH) is a Lagrangian, mesh-free approach for solving equations of fluid dynamics \cite{Rosswog2009}. The domain is represented by an ensemble of macro-particles that carry local values of physical quantities (e.g. density, velocity, internal energy, etc.) serving as discrete interpolation points. The fluid is integrated in time by evolving these macro-particles. Rather than using finite differences on a grid, spatial fields are approximated through convolution with a smoothing kernel. %, and derivatives are obtained analytically from the known kernel form.
+
+\subsubsection*{Kernel approximation}
+
+The kernel approximation of a function $f$ at position $\mathbf{r}$ is given by \cite{Rosswog2009}
+\begin{equation}
+    \tilde{f}_h(\mathbf{r}) = \int f(\mathbf{r}') \, W(\mathbf{r} - \mathbf{r}', h) \, d^3 r'\,,
+    \label{eq:kernel_approx}
+\end{equation}
+where $W$ is the smoothing kernel with smoothing length $h$ determining spatial resolution. The kernel must satisfy normalization ($\int W(\mathbf{r} - \mathbf{r}', h) \, d^3 r' = 1$), delta convergence ($\lim_{h \to 0} W(\mathbf{r} - \mathbf{r}', h) = \delta(\mathbf{r} - \mathbf{r}')$), have compact support and are chosen to be radially symmetric to ensure exact angular-momentum conservation \cite{Rosswog2009}. SPH-EXA uses the sinc-kernel family introduced with SPHYNX \cite{Cabezon2017}, defined through powers of the cardinal sine function. This approximation reproduces constant and linear functions exactly and is second-order accurate in $h$:
+\begin{equation}
+    \tilde{f}_h(\mathbf{r}) = f(\mathbf{r}) + \mathcal{O}(h^2)\,.
+    \label{eq:kernel_accuracy}
+\end{equation}
+
+\subsubsection*{Particle approximation}
+
+We can discretize the integral approximation \eqref{eq:kernel_approx} by replacing $\rho(\mathbf{r}')\,d^3r'$ with the particle mass $m_b$ to get the SPH interpolation sum \cite{Rosswog2009}
+\begin{equation}
+    f(\mathbf{r}_a) \approx \sum_b \frac{m_b}{\rho_b}\, f_b \, W_{ab}\,,
+    \label{eq:sph_interp}
+\end{equation}
+where $W_{ab} \equiv W(|\mathbf{r}_a - \mathbf{r}_b|, h_a)$ and the sum extends over all neighbors $b$ within the kernel support. The ratio $m_b/\rho_b$ serves as the volume element for particle $b$. Setting $f = \rho$ in \eqref{eq:sph_interp} gives the standard SPH density estimate
+\begin{equation}
+    \rho_a = \sum_b m_b \, W_{ab}(h_a)\,.
+    \label{eq:density_sum}
+\end{equation}
+Particle masses remain fixed, so mass conservation is exact by construction.
+
+\subsubsection*{Gradient evaluation}
+
+A key feature of SPH is that spatial derivatives are computed without finite-differences, but by differentiating \eqref{eq:sph_interp} analytically, using the known analytic form of the kernel gradient \cite{Rosswog2009}:
+\begin{equation}
+    \nabla f(\mathbf{r}_a) \approx \sum_b \frac{m_b}{\rho_b} \, f_b \, \nabla_a W_{ab}\,.
+    \label{eq:sph_grad}
+\end{equation}
+Here $\nabla_a W_{ab}$ represents a radial vector from $b$ to $a$ that vanishes when $a = b$. This approach means gradient accuracy depends on how well the kernel reproduces the underlying function. In practice, the naive sum \eqref{eq:sph_grad} only achieves zeroth-order consistency (it does not reproduce the gradient of a linear field exactly on disordered particle distributions), motivating the IAD correction discussed in \S\ref{sec:iad}.
+
+Second derivatives employ the Brookshaw form \cite{Rosswog2009}, which avoids noise amplification from double gradients and appears in artificial resistivity (\S\ref{sec:ar}):
+\begin{equation}
+    (\nabla^2 f)_a = 2 \sum_b \frac{m_b}{\rho_b} (f_a - f_b) \, \frac{\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab}}{|\mathbf{r}_{ab}|}\,.
+    \label{eq:brookshaw}
+\end{equation}
+
+\subsubsection*{The Euler equations in SPH}
+
+SPH solves the Lagrangian form of the Euler equations. The continuity equation (conservation of mass), the momentum equation (conservation of momentum) and the energy equation (conservation of energy) are: 
 \begin{align}
-\frac{d\rho}{dt} &= -\rho \nabla \cdot \vec{v}, \\
-\frac{d\vec{v}}{dt} &= -\frac{\nabla P}{\rho} + \vec{f}, \\
-\frac{du}{dt} &= \frac{P}{\rho^2}\frac{d\rho}{dt} = -\frac{P}{\rho}\nabla \cdot \vec{v}.
+    \frac{d\rho}{dt}   &= -\rho \, \nabla \cdot \mathbf{v}\,, \label{eq:euler_cont} \\
+    \frac{d\mathbf{v}}{dt} &= -\frac{\nabla P}{\rho}\,, \label{eq:euler_mom} \\
+    \frac{du}{dt}       &= -\frac{P}{\rho} \, \nabla \cdot \mathbf{v}\,, \label{eq:euler_energy}
 \end{align}
+where $\rho$ is density, $\mathbf{v}$ velocity, $P$ pressure, and $u$ specific internal energy. Self-gravity and other body forces are omitted for clarity.
 
-The SPH method solves the Euler equation by evolving an ensemble of macro-particles (discrete interpolation-points) representing the fluid. Properties of the field at the location of a particle $a$ (e.g. density $\rho_a$) are then approximated using a kernel sum over neighboring particles $b$.
-
-todo: replace with general formulation:
+Direct discretization of \eqref{eq:euler_mom} using \eqref{eq:sph_grad} does not conserve momentum because the resulting pairwise forces are not antisymmetric \cite{Rosswog2009}. The standard remedy rewrites the pressure gradient using the product-rule identity $\nabla P / \rho = \nabla(P/\rho^2) \cdot \rho + (P/\rho^2)\nabla\rho$, yielding the symmetric form
 \begin{equation}
-\rho_a = \sum_b m_b W(|\vec{r}_a - \vec{r}_b|, h_a),
+    \frac{d\mathbf{v}_a}{dt} = -\sum_b m_b \left( \frac{P_a}{\rho_a^2} + \frac{P_b}{\rho_b^2} \right) \nabla_a W_{ab}\,,
+    \label{eq:sph_mom_vanilla}
 \end{equation}
-where $W$ is the smoothing kernel with smoothing length $h$ and $m$ is the mass of the particle.   
-
-%The mean inter-particle spacing is represented by the smoothing length $h$. 
-Derivatives are calculated without finite differences by using the known analytic form of the kernel derivative, i.e. we use the exact derivative of the approximated function. 
-
+with conjugate energy equation
 \begin{equation}
-\nabla f(\vec{r}) = \sum_b \frac{m_b}{\rho_b} f_b \nabla W(\vec{r} - \vec{r}_b, h),
-\label{eq:derivatives}
+    \frac{du_a}{dt} = \frac{P_a}{\rho_a^2} \sum_b m_b \, \mathbf{v}_{ab} \cdot \nabla_a W_{ab}\,,
+    \label{eq:sph_energy_vanilla}
 \end{equation}
+where $\mathbf{v}_{ab} = \mathbf{v}_a - \mathbf{v}_b$. The symmetric appearance of pressure terms in indices $a$ and $b$ ensures Newton's third law holds pairwise.
 
-Euler equations. Particles, neighbors and kernels. Volume elements and gradient evaluation. gradh (chainrule origin, variable smoothing lengths). Conservation vs accuracy. TSPH vs GDSPH vs ISPH .
 
-\subsection{ISPH}
+\subsubsection*{Variational derivation and conservation}
 
-ISPH: (IAD/GVE) discretization. Perfect conservation but not perfect linear interpolation. Partition of unity (makes interpolation nearly exact), strong when disordered particles or near discontinuities. Accounts for uneven sampling in space (similar to weighted least squares). 
-
-ISPH gradient operator
-
+A more rigorous route to \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} starts from the discretized fluid Lagrangian
 \begin{equation}
-\ddot{x}_{i,a} = -\sum_b m_b\Big[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a},\mathcal{A}{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b},\mathcal{A}_{i,ab}(h_b)\Big]
+    L = \sum_b m_b \left( \tfrac{1}{2} v_b^2 - u(\rho_b, s_b) \right)\,,
+    \label{eq:sph_lagrangian}
 \end{equation}
+where density is given by \eqref{eq:density_sum}. Applying the Euler-Lagrange equations and using the first law of thermodynamics $(\partial u / \partial \rho)_s = P / \rho^2$ recovers equations \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} without ad hoc symmetrization \cite{Rosswog2009}. Conservation of linear momentum, angular momentum, and total energy follows as consequences of translational, rotational, and time-translation symmetries of the Lagrangian.
 
-Also quickly mention GDSPH maybe. Strong with density discontinuities at contact surfaces (e.g. 2 different mediums). 
+When each particle uses its own smoothing length $h_a$, determined implicitly from density, the chain-rule derivative $\delta \rho_b / \delta \mathbf{r}_a$ introduces an additional correction factor $\Omega_a$ \cite{Rosswog2009}, which we sometimes also refer to as grad-h correction:
+\begin{equation}
+    \Omega_a = 1 - \frac{\partial h_a}{\partial \rho_a} \sum_b m_b \frac{\partial W_{ab}(h_a)}{\partial h_a}\,,
+    \label{eq:gradh_omega}
+\end{equation}
+and the fully self-consistent momentum equation becomes
+\begin{equation}
+    \frac{d\mathbf{v}_a}{dt} = -\sum_b m_b \left( \frac{P_a}{\Omega_a \rho_a^2} \nabla_a W_{ab}(h_a) + \frac{P_b}{\Omega_b \rho_b^2} \nabla_a W_{ab}(h_b) \right)\,.
+    \label{eq:sph_mom_gradh}
+\end{equation}
+Note that each term uses the kernel evaluated with the respective particle's smoothing length.
+
+
+\subsection{The Integral Approach to Derivatives (IAD)}
+\label{sec:iad}
+
+The standard SPH gradient \eqref{eq:sph_grad} reproduces the gradient of a constant but not of a linear field on disordered particle distributions; the error is controlled by how well the kernel sum approximates the partition of unity $\sum_b V_b W_{ab} = 1$, which degrades near boundaries, density jumps, and general uneven particle sampling \cite{Cabezon2012}. The integral approach to derivatives (IAD) corrects this through renormalization of the gradient using a matrix constructed from the local particle geometry.
+
+
+\subsubsection*{The correction matrix}
+
+Starting from the Taylor expansion $f(\mathbf{r}_b) - f(\mathbf{r}_a) \approx \nabla f_a \cdot (\mathbf{r}_b - \mathbf{r}_a)$ and inserting it into the integral identity $\mathbf{I}(\mathbf{r}_a) = \int [f(\mathbf{r}') - f(\mathbf{r}_a)](\mathbf{r}' - \mathbf{r}_a) W \, dV$, the gradient is recovered by solving a $3 \times 3$ linear system \cite{Cabezon2012}:
+\begin{equation}
+    \nabla f_a = \boldsymbol{\tau}_a^{-1} \, \mathbf{I}_a \,,
+    \label{eq:iad_system}
+\end{equation}
+where the correction matrix $\boldsymbol{\tau}$ has elements
+\begin{equation}
+    \tau_{ij,a} = \sum_b V_b \, (x_{i,b} - x_{i,a})(x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,,
+    \label{eq:tau_matrix}
+\end{equation}
+with $V_b$ the volume element of particle $b$ (see below), and the right-hand side vector is
+\begin{equation}
+    I_{k,a} = \sum_b V_b \, f_b \, (x_{k,b} - x_{k,a}) \, W_{ab}(h_a)\,.
+    \label{eq:iad_rhs}
+\end{equation}
+The elements $c_{ij,a}$ of the inverse $\boldsymbol{\tau}_a^{-1}$ are precomputed once per timestep and reused in every gradient evaluation.
+
+
+\subsubsection*{The corrected gradient operator}
+
+Rather than forming $\mathbf{I}_a$ explicitly for each field, one defines the corrected gradient operator \cite{Cabezon2012, Cabezon2017}
+\begin{equation}
+    \mathcal{A}_{i,ab}(h_a) = \sum_{j} c_{ij,a} \, (x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,,
+    \label{eq:iad_grad}
+\end{equation}
+which replaces the standard kernel gradient $\partial W_{ab} / \partial x_{i,a}$ everywhere in the SPH equations. Any standard SPH expression becomes IAD-compatible through the substitution
+\begin{equation}
+    \frac{\partial W_{ab}(h_a)}{\partial x_{i,a}} \longrightarrow \mathcal{A}_{i,ab}(h_a)\,.
+    \label{eq:iad_replacement}
+\end{equation}
+By construction, this operator reproduces the gradient of any linear function exactly regardless of particle distribution, making the IAD scheme first-order consistent (linear completeness), in contrast to the standard SPH gradient which is only zeroth-order consistent \cite{Cabezon2012}.
+
+
+\subsubsection*{Generalized volume elements}
+
+The accuracy of SPH interpolation depends on how well particle volumes satisfy the partition of unity, $\sum_b V_b W_{ab} \approx 1$. The standard choice $V_b = m_b/\rho_b$ can deviate significantly from unity near shocks and density discontinuities. The generalized volume element (GVE) framework \cite{Cabezon2017, GarciaSenz2022} defines an auxiliary scalar $X_a$ and obtains the volume via
+\begin{equation}
+    V_a = \frac{X_a}{k_a}\,, \qquad k_a = \sum_b X_b \, W_{ab}(h_a)\,,
+    \label{eq:gve}
+\end{equation}
+with density recovered as $\rho_a = m_a/V_a = k_a m_a/X_a$. The choice implemented in SPH-EXA is $X_a = m_a/\rho_a^0$, where $\rho_a^0 = \sum_b m_b W_{ab}$ is the standard summation density \cite{GarciaSenz2022}. This construction represents a fixed-point iteration driving the partition-of-unity error toward zero, improving the accuracy of all gradient evaluations.
+
+
+\subsubsection*{The ISPH momentum and energy equations}
+
+Combining the IAD gradient, GVE, and $\Omega_a$ grad-h correction within the variational framework of \S\ref{sec:sph} yields the ISPH\footnote{``Integral SPH''---the conservative variant of IAD that preserves linear and angular momentum exactly \cite{Cabezon2022}.} momentum equation \cite{GarciaSenz2022}:
+
+TODO: double check eq29+32. 
+\begin{equation}
+    \ddot{x}^i_a = -\sum_b m_b \left[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \, \mathcal{A}_{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b} \, \mathcal{A}_{i,ab}(h_b) \right]\,,
+    \label{eq:isph_mom}
+\end{equation}
+with conjugate energy equation
+\begin{equation}
+    \frac{du_a}{dt} = \frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \sum_b m_b \, v^i_{ab} \, \mathcal{A}_{i,ab}(h_a)\,.
+    \label{eq:isph_energy}
+\end{equation}
+The structure mirrors the standard grad-h SPH equations \eqref{eq:sph_mom_gradh}, with kernel gradients replaced by IAD operators and $1/\rho^2$ replaced by GVE-derived $X^2/(m^2 k)$. When the partition of unity is exact ($k_a X_a = m_a$, i.e.\ $\rho_a = \rho_a^0$), \eqref{eq:isph_mom} reduces to \eqref{eq:sph_mom_gradh} with IAD gradients. Conservation of linear and angular momentum remains exact; energy conservation follows from the variational derivation \cite{GarciaSenz2022}.
+
+SPH-EXA additionally implements a smooth transition between the ISPH symmetrization in \eqref{eq:isph_mom} and a more diffusive form for large density contrasts, controlled by the Atwood number $\mathcal{A}_t = |\rho_a - \rho_b|/(\rho_a + \rho_b)$. Below a threshold $\mathcal{A}_{t,\min}$ the ISPH form applies; above $\mathcal{A}_{t,\max}$ the volume-element prefactors become symmetric ($X_a X_b$ in both terms), similar to the GDSPH discretization \cite{WissingShen2020}. A power-law ramp interpolates between the two regimes.
+
 
 \subsection{Artificial Viscosity}
-General overview of motivation/goals. Additional pairwise pressure term. Damp out shocks and deposit energy as heat. Techniques (Monaghan, divv gating, switch (dynamically adjust), avclean, SLR, balsara modulation). Signal velocity (magnetosonic). 
+\label{sec:av}
 
-\subsection{MHD Equations}
-% Magnetic Pressue
-% \begin{equation}
-% P_\text{mag} = \frac{|B|^2}{2\mu_0} = \frac{B_x^2 + B_y^2 + B_z^2}{2\mu_0}    
-% \end{equation}
+The Euler equations allow for discontinuities (shocks) that finite-resolution cannot represent. Without additional dissipation, shocks produce unphysical post-shock oscillations that can grow and corrupt the solution. Artificial viscosity (AV) provides controlled, resolution-scale dissipation converting kinetic energy of converging flow into heat, spreading shocks over a few smoothing lengths and make it representable in SPH \cite{Rosswog2009}.
 
-Start at maxwell or just jump to induction? DivB constraint. 
 
-Induction Equation
-\begin{equation}
-    \frac{d\mathbf{B}}{dt} = (\mathbf{B}\cdot\nabla)\mathbf{v} - \mathbf{B}(\nabla\cdot\mathbf{v})
-\end{equation}
+\subsubsection*{The Monaghan viscosity}
 
-Magnetic stress tensor (Lorentz force written in a convenient form for fluids). 
-\begin{equation}
-S^{ij} = -\delta^{ij}\left(P + \frac{B^2}{2}\right) + B^i B^j  
-\end{equation}
-
-Normalized divergence error
-\begin{equation}
-\epsilon_{\mathrm{divB}} = \frac{h\,|\nabla\cdot\mathbf{B}|}{|\mathbf{B}|}
-\end{equation}
-
-Divergence cleaning
+The standard AV adds a pairwise pressure-like term $\Pi_{ab}$ to the momentum equation. SPHEXA uses the signal-velocity formulation \cite{Rosswog2009}, where the viscous acceleration and heating enter as
 \begin{align}
-\left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla\psi \\
-\frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h\,\nabla\cdot\mathbf{B} - \frac{1}{\tau}\frac{\psi}{c_h} - \frac{1}{2}\psi(\nabla\cdot\mathbf{v})
+    \left(\frac{d\mathbf{v}_a}{dt}\right)_\mathrm{AV} &= -\sum_b m_b \, \Pi_{ab} \, \nabla_a W_{ab}\,, \label{eq:av_mom} \\
+    \left(\frac{du_a}{dt}\right)_\mathrm{AV} &= \frac{1}{2} \sum_b m_b \, \Pi_{ab} \, \mathbf{v}_{ab} \cdot \nabla_a W_{ab}\,, \label{eq:av_energy}
 \end{align}
-
-
-
-\subsection{Artificial Resistivity} 
-Discontinuities, stability, motivation. 
-
-Finite particles cannot represent a true discontinuity which would be true physical solution for a shock or sharp gradient. So energy in the sharp gradient has nowhere to go, can't propagate away cleanly. Instead bounces back as high-freq oscillations -> Gibbs-like ringing artifacts near shocks. Without dissipation those oscillations don't decay but grow and blow up solution. Just need to give energy somewhere to go, like a drain or lowpass filter at resolution scale. Rather dump energy locally than corrupt rest of solution. Tangential and rotational discontinuities require AR (no compression there. vsig=0, compression is AVs job). fast and slow shock via AV? Contact discontinuity neither (ideally). 
-
-"pulling B vectors of neighboring particles towards each other". Jump survives as a ramp of width ~h, best that SPH can represent.
-
-NOTE: Velocity noise results in magnetic dissipation via the signal velocity
-
-\subsubsection{Classic}
-resistivity. dimensionless constant $\alpha_B$. signal velocity (old one?). no gating like AV. 
-
-\subsubsection{Switches}
-Tricco \& Price switch. They used different signal velocity though. Later replaced switch with current signal velocity. For clean comparison need to run with old v\_sig
-
+where, for approaching particles ($\mathbf{v}_{ab} \cdot \mathbf{r}_{ab} < 0$),
 \begin{equation}
-\alpha_{B,a} = \frac{h_a\,\left\Vert \nabla\mathbf{B}_a \right\Vert_2}{|\mathbf{B}_a|}, \qquad \alpha_B \in [0,\,1]
+    \Pi_{ab} = \frac{1}{\bar{\rho}_{ab}} \left[\frac{\alpha}{4}(\bar{c}_a + \bar{c}_b)\, w_{ab} + \beta \, w_{ab}^2 \right]\,,
+    \label{eq:av_Pi}
+\end{equation}
+with $w_{ab} = \mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}$ the projected approach velocity, $\bar{c}$ the signal speed (sound speed in pure hydro, fast magnetosonic speed in MHD, see \S\ref{sec:spmhd}), $\alpha$ the linear viscosity coefficient, and $\beta = 2$ the quadratic coefficient. The linear term models bulk viscosity and damps oscillations at the shock front; the quadratic term provides additional dissipation for strong shocks to prevent particle interpenetration. $\Pi_{ab} = 0$ for receding particles.
+
+In SPHEXA, the kernel gradients in \eqref{eq:av_mom}--\eqref{eq:av_energy} are replaced by IAD operators and density by GVE-derived values $\rho_a = k_a m_a / X_a$, following the pattern established in \S\ref{sec:iad}.
+
+
+\subsubsection*{Limiting unwanted dissipation}
+
+Away from shocks, AV generates spurious dissipation damping physical shear flows, vortices, and sound waves. Several strategies mitigate this:
+
+\paragraph{Balsara limiter.} The Balsara factor \cite{Balsara1995} distinguishes compression from shear through the ratio
+\begin{equation}
+    f_a = \frac{|\nabla \cdot \mathbf{v}|_a}{|\nabla \cdot \mathbf{v}|_a + |\nabla \times \mathbf{v}|_a + \epsilon_a}\,, \qquad \epsilon_a = 10^{-4}\,\frac{c_a}{h_a}\,,
+    \label{eq:balsara}
+\end{equation}
+approaching unity in convergent flow (shocks) and zero in pure shear. The pair-averaged $\bar{f}_{ab} = \tfrac{1}{2}(f_a + f_b)$ is applied as a prefactor to $\Pi_{ab}$.
+
+\paragraph{Time-dependent $\alpha$.} The Morris \& Monaghan scheme \cite{MorrisMonaghan1997} evolves the viscosity coefficient per particle,
+\begin{equation}
+    \frac{d\alpha_a}{dt} = -\frac{\alpha_a - \alpha_\mathrm{min}}{\tau_a} + S_a\,, \qquad \tau_a = \frac{h_a}{\xi\, c_a}\,,
+    \label{eq:mm97}
+\end{equation}
+with source term $S_a = \max[-(\nabla \cdot \mathbf{v})_a, 0]$ raising $\alpha$ in compressions and decay time $\tau_a$ relaxing it back to $\alpha_\mathrm{min}$ in smooth flow.
+
+\paragraph{Slope-limited reconstruction (SLR).} A more recent approach replacing heuristic switches entirely is discussed in \S\ref{sec:slr}.
+
+
+\subsection{Ideal Magnetohydrodynamics}
+\label{sec:mhd}
+
+Ideal magnetohydrodynamics extends the Euler equations with the Lorentz force and induction equation to describe perfectly conducting fluids threaded by magnetic fields $\mathbf{B}$.
+
+
+\subsubsection*{The Lorentz force}
+
+The force per unit volume exerted by the magnetic field on the fluid is, in a convenient divergence form \cite{WissingShen2020},
+\begin{equation}
+    \frac{d\mathbf{v}}{dt}\bigg|_\mathrm{mag} = \frac{1}{\rho} \nabla \cdot \mathbf{S}\,,
+    \label{eq:lorentz}
+\end{equation}
+where $\mathbf{S}$ is the Maxwell stress tensor
+\begin{equation}
+    S^{ij} = \frac{1}{\mu_0}\left(B^i B^j - \frac{1}{2}\delta^{ij} B^2\right)\,.
+    \label{eq:maxwell_stress}
+\end{equation}
+The diagonal terms $-B^2/(2\mu_0)$ give isotropic magnetic pressure, while off-diagonal terms $B^i B^j/\mu_0$ produce tension along field lines. The total MHD momentum equation is $d\mathbf{v}/dt = -\nabla P/\rho + \nabla \cdot \mathbf{S}/\rho$.
+
+
+\subsubsection*{The induction equation}
+
+For a perfectly conducting fluid ($\eta = 0$), the magnetic field evolves according to \cite{Wissing2020}
+\begin{equation}
+    \frac{d\mathbf{B}}{dt} = (\mathbf{B} \cdot \nabla)\mathbf{v} - \mathbf{B}(\nabla \cdot \mathbf{v})\,.
+    \label{eq:induction}
+\end{equation}
+The first term stretches and bends field lines through velocity shear; the second amplifies the field in compressions ($\nabla \cdot \mathbf{v} < 0$). These represent the two mechanisms by which fluid motions modify the frozen-in magnetic field.
+
+
+\subsubsection*{The divergence constraint}
+
+Maxwell's equations require $\nabla \cdot \mathbf{B} = 0$ at all times. In continuum MHD this is preserved automatically: if the initial field is divergence-free and the induction equation holds exactly, $\nabla \cdot \mathbf{B}$ remains zero. Numerically, however, discretization errors violate this constraint, producing unphysical magnetic monopoles that generate spurious forces and destabilize simulations. Controlling these errors is central to SPMHD, addressed by the divergence-cleaning scheme in \S\ref{sec:divb_cleaning}.
+
+The normalized divergence error
+\begin{equation}
+    \varepsilon_{\mathrm{divB}} = \frac{h\,|\nabla \cdot \mathbf{B}|}{|\mathbf{B}|}
+    \label{eq:divb_error}
+\end{equation}
+provides a dimensionless diagnostic; a well-controlled simulation maintains mean $\varepsilon_\mathrm{divB} \lesssim 10^{-2}$ \cite{WissingShen2020, Price2018}.
+
+
+\subsection{SPMHD: Discretization in SPHEXA}
+\label{sec:spmhd}
+
+We now present the SPH discretization of MHD equations as implemented in SPHEXA. The code builds on the ISPH framework of \S\ref{sec:iad} and draws on elements from both the Phantom code \cite{Price2018} and the GDSPH formulation of Wissing \& Shen \cite{WissingShen2020}, adapting them to IAD gradients and generalized volume elements.
+
+
+\subsubsection*{Momentum equation with magnetic stress}
+
+The magnetic contribution to the momentum equation uses the same ISPH structure as \eqref{eq:isph_mom}, with the Maxwell stress tensor \eqref{eq:maxwell_stress} entering alongside gas pressure:
+\begin{equation}
+    \ddot{x}^i_a\big|_\mathrm{mag} = \sum_b m_b \left[ \frac{X_a^2}{\Omega_a m_a^2 k_a}\, S_a^{ij}\, \mathcal{A}_{j,ab}(h_a) + \frac{X_b^2}{\Omega_b m_b^2 k_b}\, S_b^{ij}\, \mathcal{A}_{j,ab}(h_b) \right]\,.
+    \label{eq:spmhd_mom}
+\end{equation}
+This represents a Phantom-style $\rho^2$ symmetrization (each particle uses its own stress tensor and volume-element prefactor) adapted to the ISPH framework, rather than the GDSPH form of Wissing \& Shen \cite{WissingShen2020} which uses $S_a^{ij} + S_b^{ij}$ with a single $1/(\rho_a \rho_b)$ prefactor \cite{Price2018}. The Atwood-number blending described in \S\ref{sec:iad} applies to both gas pressure and magnetic stress terms.
+
+
+\subsubsection*{Induction equation}
+
+Rather than discretizing \eqref{eq:induction} as a direct antisymmetric SPH sum \cite{WissingShen2020}, SPHEXA first computes the full velocity-gradient tensor (Jacobian)
+\begin{equation}
+    \frac{\partial v^i}{\partial x^j}\bigg|_a = \frac{K}{h_a^3}\frac{1}{k_a \Omega_a} \sum_b V_b \,(v^i_b - v^i_a)\, \mathcal{A}_{j,ab}(h_a)
+    \label{eq:vel_jacobian}
+\end{equation}
+via the IAD gradient, then evaluates the analytic identity \eqref{eq:induction} component by component:
+\begin{equation}
+    \frac{dB^x_a}{dt} = -B^x_a \left(\frac{\partial v^y}{\partial y} + \frac{\partial v^z}{\partial z}\right)_{\!a} + B^y_a \frac{\partial v^x}{\partial y}\bigg|_a + B^z_a \frac{\partial v^x}{\partial z}\bigg|_a\,,
+    \label{eq:induction_code}
+\end{equation}
+and analogously for the other components. This yields the same continuum operator as the direct sum but with a more accurate (IAD-based) gradient estimator.
+
+
+\subsubsection*{The fast magnetosonic signal speed}
+
+In MHD, information propagates as sound, Alfvén, and magnetosonic waves. The relevant signal speed for shock capturing and time-stepping is the fast magnetosonic speed
+\begin{equation}
+    v_\mathrm{mhd} = \sqrt{c_s^2 + v_A^2}\,, \qquad v_A = \sqrt{\frac{B^2}{\mu_0 \rho}}\,,
+    \label{eq:vmhd}
+\end{equation}
+where $v_A$ is the Alfvén speed \cite{WissingShen2020, Price2018}. SPHEXA replaces the sound speed $c_s$ in the artificial viscosity signal velocity with $v_\mathrm{mhd}$, and uses the per-pair maximum signal speed for the CFL time-step constraint.
+
+
+\subsubsection*{Tensile instability correction}
+
+When magnetic pressure exceeds gas pressure ($\beta = 2\mu_0 P / B^2 < 1$), the negative-definite part of the Maxwell stress can trigger a clumping instability---particle pairs attract rather than repel when the SPH force law is dominated by magnetic tension \cite{Price2018}. The standard remedy \cite{Borve2001} adds a source term proportional to $\nabla \cdot \mathbf{B}$ to the momentum equation:
+\begin{equation}
+    f^i_{\mathrm{divB},a} = -\hat{B}^i_a \sum_b m_b \left[\frac{X_a^2}{\Omega_a m_a^2 k_a}(\mathbf{B}_a \cdot \boldsymbol{\mathcal{A}}_{ab}(h_a)) + \frac{X_b^2}{\Omega_b m_b^2 k_b}(\mathbf{B}_b \cdot \boldsymbol{\mathcal{A}}_{ab}(h_b))\right]\,,
+    \label{eq:fdivb}
+\end{equation}
+where $\hat{B}^i_a = H(\beta_a)\, B^i_a$ is modulated by a switch $H$ that activates the correction only in the strong-field regime. SPHEXA uses the Phantom switch \cite{Price2018}:
+\begin{equation}
+    H(\beta) = \begin{cases}
+        1 & \beta < 2\,, \\
+        \dfrac{10 - \beta}{8} & 2 \leq \beta < 10\,, \\
+        0 & \beta \geq 10\,.
+    \end{cases}
+    \label{eq:beta_switch}
 \end{equation}
 
-\subsubsection{Self-Switching vsigB}
-Price. 
+This correction deliberately breaks exact momentum conservation; the error is proportional to local $\nabla \cdot \mathbf{B}$ and kept small by the divergence-cleaning scheme \cite{Price2018}.
 
-\subsubsection{SLR}
-Subtract linear component to remove dissipation in smooth flow. The reconstruction is a filter, it changes which vector gets dissipated. 
 
-In resolved gradient with noise: With switch/v\_sig stuff dissipation of resolved structure and noise happens proportionally. Tradoff: protect structure vs clean noise. After SLR subtraction, residual \textit{is} the noise, can dissipate at full alphaB=1, while resolved gradient is dissipated at almost zero (to gradient accuracy). Single scalar can't replicate this. 
+\subsection{Divergence Cleaning}
+\label{sec:divb_cleaning}
 
-But reconstruction dangerous at shocks (overshoots/monotonicity violations, see TVD limiters). Need limiter to compare jacobians and only apply reconstruction if both sides "aggree", i.e. have very similar jacobians. This also shuts down reconstruction in white/uncorrelated noise. 
+SPHEXA controls the $\nabla \cdot \mathbf{B} = 0$ constraint numerically through the constrained hyperbolic/parabolic cleaning scheme of Dedner et al.\ \cite{Dedner2002}, extended to SPH by Tricco \& Price \cite{TriccoPrice2012}. The scheme introduces an auxiliary scalar field $\psi$ that couples to the induction equation and transports divergence errors away from their source at finite speed while damping them.
 
-Van Leer-style limiters not specific to velocity, general safety of linear reconstruction at any discontinuity. limiter kinda like a switch? 
-Might need to check if the J\_B ratio actually is good at catching magnetic shocks. 
 
-If particles get too close together ($q_{ab} < q_\text{crit}$) we force the limiter to zero with $\kappa$ to help us dissipate noise. Possibly only relevant for hydro, might get rid of kappa for resistivity. Except if tests show that kappa is a beneficial shock/noise indicator. 
+\subsubsection*{The coupled system}
+
+The magnetic field receives an additional cleaning contribution
 \begin{equation}
-B'_{a} \equiv B_{a} - \frac{1}{2} \phi_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}
+    \left(\frac{d\mathbf{B}}{dt}\right)_\psi = -\nabla \psi\,,
+    \label{eq:cleaning_dBdt}
+\end{equation}
+and the auxiliary field $\psi$ evolves as
+\begin{equation}
+    \frac{d}{dt}\!\left(\frac{\psi}{c_h}\right) = -c_h \, \nabla \cdot \mathbf{B} - \frac{\psi}{c_h \tau} - \frac{\psi}{2c_h}\, \nabla \cdot \mathbf{v}\,,
+    \label{eq:psi_evolution}
+\end{equation}
+where $c_h$ is the cleaning speed and $\tau$ the damping time. Combining \eqref{eq:cleaning_dBdt} and \eqref{eq:psi_evolution} in the limit of constant $c_h$ and $\tau$ yields a damped wave equation for $\nabla \cdot \mathbf{B}$ \cite{TriccoPrice2012}:
+\begin{equation}
+    \frac{\partial^2 (\nabla \cdot \mathbf{B})}{\partial t^2} - c_h^2 \nabla^2(\nabla \cdot \mathbf{B}) + \frac{1}{\tau}\frac{\partial(\nabla \cdot \mathbf{B})}{\partial t} = 0\,.
+    \label{eq:divb_wave}
+\end{equation}
+Divergence errors propagate outward at speed $c_h$ (hyperbolic cleaning) and decay exponentially with time constant $\tau$ (parabolic damping). SPHEXA evolves the rescaled variable $\psi/c_h$ rather than $\psi$ directly, necessary for consistency when $c_h$ varies in space and time \cite{Tricco2016}.
+
+
+\subsubsection*{Cleaning parameters}
+
+The cleaning speed is set to the fast magnetosonic speed \cite{WissingShen2020}:
+\begin{equation}
+    c_{h,a} = f_\mathrm{clean} \sqrt{c_{s,a}^2 + v_{A,a}^2}\,,
+    \label{eq:ch}
+\end{equation}
+with $f_\mathrm{clean} = 1$ (no over-cleaning; larger values improve divergence control at the cost of a smaller CFL time step). The damping time is
+\begin{equation}
+    \tau_a = \frac{h_a}{\sigma_c \, c_{h,a}}\,, \qquad \sigma_c = 1\,,
+    \label{eq:tau_cleaning}
+\end{equation}
+coupling cleaning to local resolution and wave speed \cite{TriccoPrice2012}.
+
+
+\subsubsection*{Constrained discretization}
+
+The SPH discretization of \eqref{eq:cleaning_dBdt}--\eqref{eq:psi_evolution} must be chosen carefully to avoid injecting energy through the cleaning process. Tricco \& Price \cite{TriccoPrice2012} showed that using \emph{conjugate} operators---an antisymmetric (difference) sum for $\nabla \cdot \mathbf{B}$ paired with a symmetric sum for $\nabla \psi$, or vice versa---guarantees the cleaning dissipation rate
+\begin{equation}
+    \left(\frac{dE}{dt}\right)_\mathrm{clean} = -\sum_a m_a \frac{\psi_a^2}{\mu_0 \rho_a c_{h,a}^2 \tau_a}
+    \label{eq:cleaning_dissipation}
+\end{equation}
+is negative-definite: cleaning can only remove magnetic energy, never inject it. SPHEXA uses the antisymmetric (difference) operator for the $\nabla \cdot \mathbf{B}$ source in \eqref{eq:psi_evolution} and the symmetric operator for the $\nabla \psi$ contribution to $d\mathbf{B}/dt$, consistent with \cite{TriccoPrice2012}, adapted to the IAD gradient:
+\begin{equation}
+    \left(\frac{d\mathbf{B}_a}{dt}\right)_\psi = -\rho_a \sum_b m_b \left[\frac{\psi_a c_{h,a} X_a^2}{\Omega_a k_a m_a^2}\, \boldsymbol{\mathcal{A}}_{ab}(h_a) + \frac{\psi_b c_{h,b} X_b^2}{\Omega_b k_b m_b^2}\, \boldsymbol{\mathcal{A}}_{ab}(h_b)\right]\,,
+    \label{eq:cleaning_grad_psi}
+\end{equation}
+where we have written $\psi_a = (\psi/c_h)_a \cdot c_{h,a}$ to recover $\psi$ from the evolved variable. The energy removed by cleaning is not reinjected as heat, since the cleaning dissipation site does not coincide with the physical origin of the divergence error \cite{TriccoPrice2012}.
+
+
+\subsection{Artificial Resistivity}
+\label{sec:ar}
+
+Physical discontinuities in the magnetic field---rotational discontinuities, tangential discontinuities (current sheets), and magnetic components of MHD shocks---cannot be captured by finite particles. Without dissipation, energy trapped in sub-resolution gradients produces high-frequency oscillations that corrupt the solution, analogous to the velocity case motivating AV. Artificial resistivity (AR) provides controlled, resolution-scale magnetic diffusion spreading sharp gradients over a few smoothing lengths \cite{Price2018, WissingShen2020}.
+
+
+\subsubsection*{The dissipation terms}
+
+Following the Brookshaw-type discretization \cite{WissingShen2020}, the resistive contribution to the induction equation is
+\begin{equation}
+    \left(\frac{d\mathbf{B}_a}{dt}\right)_\mathrm{diss} = \sum_b \frac{m_b}{\rho_b}\,\frac{\eta_a + \eta_b}{|\mathbf{r}_{ab}|}\, \mathbf{B}_{ab}\,(\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab})\,,
+    \label{eq:ar_dB}
+\end{equation}
+where $\mathbf{B}_{ab} = \mathbf{B}_a - \mathbf{B}_b$ and $\eta = \tfrac{1}{2}\alpha_B \, v_{\mathrm{sig},B}\, |\mathbf{r}_{ab}|$ is the resistivity coefficient. The conjugate heating term conserves total energy:
+\begin{equation}
+    \left(\frac{du_a}{dt}\right)_\mathrm{diss} = -\frac{1}{2\mu_0} \sum_b \frac{m_b}{\rho_a \rho_b}\,\frac{\eta_a + \eta_b}{|\mathbf{r}_{ab}|}\, B_{ab}^2\,(\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab})\,.
+    \label{eq:ar_du}
 \end{equation}
 
+In SPHEXA, the kernel-gradient terms $\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab} / \rho^2$ are replaced by IAD-based forms $\hat{\mathbf{r}}_{ab} \cdot \boldsymbol{\mathcal{A}}_{ab} / \rho^2$, and a conjugate-pair structure (using both particles' kernels) is employed, following Phantom convention \cite{Price2018}.
+
+
+\subsubsection*{Signal velocity}
+
+The resistive signal velocity
 \begin{equation}
-B'_{b} \equiv B_{b} + \frac{1}{2} \phi_{ba} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}
+    v_{\mathrm{sig},B} = |\mathbf{v}_{ab} \times \hat{\mathbf{r}}_{ab}|
+    \label{eq:vsigB}
+\end{equation}
+measures transverse relative velocity between particles and vanishes identically when there is no relative motion. Combined with $\alpha_B = 1$ (constant), resistivity becomes proportional to $h^2$ and gives zero dissipation for magnetic fields advected with uniform velocity---crucial for preserving quiescent structures \cite{Price2018}.
+
+
+\subsubsection*{The resistivity coefficient $\alpha_B$}
+
+SPHEXA implements several strategies for setting the dimensionless coefficient $\alpha_B$:
+
+\paragraph{Constant.} A spatially uniform $\alpha_B$ (e.g.\ $\alpha_B = 0.5$ as in \cite{WissingShen2020}, or $\alpha_B = 1$ as in \cite{Price2018}).
+
+\paragraph{Tricco \& Price switch.} An adaptive, instantaneous switch \cite{TriccoPrice2013} that sets
+\begin{equation}
+    \alpha_{B,a} = \min\!\left(\frac{h_a \|\nabla \mathbf{B}\|_a}{|\mathbf{B}_a|},\; 1\right)\,,
+    \label{eq:tp_switch}
+\end{equation}
+where $\|\nabla \mathbf{B}\|$ is the Frobenius norm of the magnetic-field gradient tensor computed via IAD. This is large ($\sim 1$) near discontinuities and small in smooth regions, providing localized dissipation. No source/decay ODE is used; the switch responds instantaneously.
+
+\paragraph{SLR schemes.} In the slope-limited reconstruction approach (\S\ref{sec:slr}), $\alpha_B$ is set to a constant value of 1, and dissipation is instead controlled by subtracting the resolved linear gradient from $\mathbf{B}_{ab}$ before it enters the dissipation operator. This provides a more principled scale separation than a heuristic switch. The SLR variants (SLR, SLRB, SLRB2) additionally modulate the dissipation via the Lij floor mechanism described in \S\ref{sec:slr}.
+
+
+\subsection{Slope-Limited Reconstruction (SLR)}
+\label{sec:slr}
+
+Heuristic dissipation switches face a fundamental trade-off: a single scalar per particle must decide how much dissipation to apply, but the answer depends on both local flow structure (shock vs.\ smooth gradient vs.\ noise) and the scale of the feature relative to resolution. Slope-limited reconstruction \cite{GarciaSenzCabezon2026} resolves this by directly \emph{removing} the resolved linear component from the quantity entering the dissipation operator, so that only the non-linear residual---the part that SPH cannot represent and that signals a shock or noise---is dissipated. This provides a natural scale separation without a heuristic amplitude threshold.
+
+
+\subsubsection*{The reconstruction}
+
+For a particle pair $(a, b)$, the raw difference $\mathbf{v}_{ab} = \mathbf{v}_a - \mathbf{v}_b$ entering AV is replaced by the reconstructed difference $\mathbf{v}'_{ab} = \mathbf{v}'_a - \mathbf{v}'_b$, where \cite{GarciaSenzCabezon2026}
+\begin{align}
+    \mathbf{v}'_a &= \mathbf{v}_a - \tfrac{1}{2}\,\phi_{ab}\, \mathbf{J}_{\mathbf{v},a}\, \mathbf{r}_{ab}\,, \label{eq:slr_va} \\
+    \mathbf{v}'_b &= \mathbf{v}_b + \tfrac{1}{2}\,\phi_{ba}\, \mathbf{J}_{\mathbf{v},b}\, \mathbf{r}_{ab}\,, \label{eq:slr_vb}
+\end{align}
+with $\mathbf{J}_\mathbf{v}$ the velocity Jacobian computed via IAD (\eqref{eq:vel_jacobian}) and $\mathbf{r}_{ab} = \mathbf{r}_a - \mathbf{r}_b$. The term $\mathbf{J}_\mathbf{v}\,\mathbf{r}_{ab}$ represents the linear estimate of velocity variation between particles; subtracting it leaves only the non-linear shock residual to be dissipated.
+
+
+\subsubsection*{The van Leer limiter}
+
+The limiter $\phi_{ab}$ prevents reconstruction from overshooting at discontinuities where the linear estimate is unreliable \cite{GarciaSenzCabezon2026, Frontiere2017}:
+\begin{equation}
+    \phi_{ab} = \max\!\left[0,\; \min\!\left(1,\; \frac{4 F_{ab}}{(1 + F_{ab})^2}\right)\right] \cdot \kappa_{ab}\,,
+    \label{eq:vanleer}
+\end{equation}
+where
+\begin{equation}
+    F_{ab} = \frac{\mathbf{r}_{ab} \cdot \mathbf{J}_{\mathbf{v},a}\, \mathbf{r}_{ab}}{\mathbf{r}_{ab} \cdot \mathbf{J}_{\mathbf{v},b}\, \mathbf{r}_{ab}}
+    \label{eq:Fab}
+\end{equation}
+compares directional velocity derivative estimates from both particles' Jacobians. When estimates agree ($F_{ab} \approx 1$), the limiter approaches unity and the full linear field is subtracted; when they disagree strongly (discontinuity or noise), the limiter drops to zero and raw differences are used, recovering standard dissipation at shocks.
+
+The close-pair guard $\kappa_{ab}$ \cite{Frontiere2017} re-enables full dissipation for anomalously close particle pairs ($q_{ab} < q_\mathrm{crit}$), where $q_{ab} = \min(|\mathbf{r}_{ab}|/h_a, |\mathbf{r}_{ab}|/h_b)$ and $q_\mathrm{crit} = (32\pi/(3 n_b))^{1/3}$ estimates the mean interparticle spacing:
+\begin{equation}
+    \kappa_{ab} = \begin{cases}
+        \exp\!\left[-\left(\dfrac{q_{ab} - q_\mathrm{crit}}{q_\mathrm{fold}}\right)^{\!2}\right] & q_{ab} < q_\mathrm{crit}\,, \\
+        1 & q_{ab} \geq q_\mathrm{crit}\,,
+    \end{cases}
+    \label{eq:kappa}
+\end{equation}
+with $q_\mathrm{fold} = 0.2$.
+
+
+\subsubsection*{Balsara modulation of SLR}
+
+In the AVSLRB2 variant \cite{GarciaSenzCabezon2026}, the Balsara factor $f_a$ from \eqref{eq:balsara} additionally modulates the reconstruction:
+\begin{equation}
+    \mathbf{v}'_a = \mathbf{v}_a - \tfrac{1}{2}\,(1 - f_a^2)\,\phi_{ab}\, \mathbf{J}_{\mathbf{v},a}\, \mathbf{r}_{ab}\,.
+    \label{eq:slr_balsara}
+\end{equation}
+Near shocks ($f_a \to 1$), the prefactor $(1 - f_a^2) \to 0$ suppresses reconstruction, ensuring full dissipation at the shock front. In shear-dominated flow ($f_a \to 0$), the full SLR correction applies and AV is strongly reduced. Additionally, the Balsara factor can modulate the linear (sound-speed) AV term through the floor
+\begin{equation}
+    L_{ij} = \max(F_\mathrm{floor},\; \bar{f}_{ab})\,,
+    \label{eq:Lij}
+\end{equation}
+where $F_\mathrm{floor}$ (default 1, effectively disabled) can be lowered to further suppress dissipation in subsonic turbulence \cite{GarciaSenzCabezon2026}.
+
+
+\subsubsection*{Extension to artificial resistivity}
+
+The SLR concept extends naturally from velocity (AV) to magnetic field (AR): the raw magnetic-field difference $\mathbf{B}_{ab}$ in \eqref{eq:ar_dB} is replaced by the reconstructed difference
+\begin{equation}
+    \mathbf{B}'_a = \mathbf{B}_a - \tfrac{1}{2}\,\phi_{ab}\, \mathbf{J}_{\mathbf{B},a}\, \mathbf{r}_{ab}\,, \qquad
+    \mathbf{B}'_b = \mathbf{B}_b + \tfrac{1}{2}\,\phi_{ba}\, \mathbf{J}_{\mathbf{B},b}\, \mathbf{r}_{ab}\,,
+    \label{eq:slr_B}
+\end{equation}
+where $\mathbf{J}_\mathbf{B}$ is the $3 \times 3$ magnetic-field Jacobian computed from the IAD gradient. The van Leer limiter \eqref{eq:vanleer}--\eqref{eq:Fab} is evaluated with the magnetic Jacobian in place of the velocity Jacobian. With SLR, $\alpha_B = 1$ and the full limiter machinery handles dissipation control; after the linear field is subtracted, the residual is predominantly noise or the discontinuity itself, and can be dissipated at full strength.
+
+Analogous to the AV case, SLRB/SLRB2 variants exist with a Balsara-like modulation of the reconstruction. Since the standard Balsara factor \eqref{eq:balsara} uses $\nabla \cdot \mathbf{v}$ and $\nabla \times \mathbf{v}$---quantities with no clean magnetic analogue ($\nabla \cdot \mathbf{B} \approx 0$ is a constraint, not structure)---the magnetic SLR instead uses a steepness detector based on the Tricco \& Price form \cite{TriccoPrice2013}:
+\begin{equation}
+    \mathrm{mod}_a = \min\!\left(1,\; \frac{h_a\, \|\nabla \mathbf{B}\|_a}{|\mathbf{B}_a|}\right)\,,
+    \label{eq:slr_modulator}
+\end{equation}
+which is large near magnetic discontinuities and small in smooth fields. The modulated reconstruction becomes
+\begin{equation}
+    \mathbf{B}'_a = \mathbf{B}_a - \tfrac{1}{2}\,(1 - \mathrm{mod}_a^p)\,\phi_{ab}\, \mathbf{J}_{\mathbf{B},a}\, \mathbf{r}_{ab}\,,
+    \label{eq:slr_B_mod}
+\end{equation}
+with $p = 1$ (SLRB) or $p = 2$ (SLRB2). An $L_{ij}$ floor mechanism analogous to \eqref{eq:Lij}, using $\bar{\mathrm{mod}}_{ab} = \tfrac{1}{2}(\mathrm{mod}_a + \mathrm{mod}_b)$, scales the overall dissipation coefficient:
+\begin{equation}
+    \eta_\mathrm{eff} = L_{ij}\, \alpha_B\, v_{\mathrm{sig},B}\,.
+    \label{eq:ar_Lij}
 \end{equation}
 
-\begin{equation}
-\phi_{ab} = \max\left[0, \min\left(1, \frac{4F_{ab}}{(1 + F_{ab})^2}\right)\right] \times \kappa_{ab}
-\end{equation}
-
-\begin{equation}
-\kappa_{ab} = \begin{cases} \exp\left\{-\left(\dfrac{q_{ab} - q_\text{crit}}{q_\text{fold}}\right)^2\right\} & \text{if } q_{ab} < q_\text{crit} \\ 1 & \text{if } q_{ab} \geq q_\text{crit} \end{cases}
-\end{equation}
-
-\begin{equation}
-q_{ab} \equiv \min(q_a, q_b)
-\end{equation}
-
-Mean interparticle spacing $q_\text{crit}$. kappa Frontiere close-pair guard. Probably irrelevant for MHD, since resistivity doesn't really address the problem of particle clustering the same way viscosity does. But close pair interaction dominated by noise, so probably don't want to reconstruct there anyways. So mby keep. 
-\begin{equation}
-q_\text{crit} \equiv \left(\frac{32\pi}{3 n b_a}\right)^{1/3}
-\end{equation}
-
-\begin{equation}
-F_{ab} \equiv \frac{\mathbf{x}_{ab} \mathbf{J}_{B_a} \mathbf{x}^T_{ab}}{\mathbf{x}_{ab} \mathbf{J}_{B_b} \mathbf{x}^T_{ab}}
-\end{equation}
-
-Balsara factors: Don't work in MHD because we can't use divergence of B. Just use curlB/normB or smth? 
-
-New idea: Use tricco \& price switch formulation for SLR modulation instead. It's just a steepness detector after all. Could be really nice if it works. Rubens modulator: Special B\_scale instead of just B norm to have more information about surroundings and add a B\_floor: 
-
-\begin{equation}
-    modulator_a = min\{ 1, \frac{h_a \left\Vert \nabla\mathbf{B}_a \right\Vert_2}{B_{scale,a}}\}
-\end{equation}
-\begin{equation}
-    B_{scale,a} = \sqrt{B_a^2 + \left< |B_b - B_a|^2 \right> + B_{floor}^2}
-\end{equation}
-Idea: vector van Leer using the full $\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$ + clamp to avoid overshoot. Fab compares single fixed direction. For hydro AV the dissipated quanity $\omega_{ab}=\mathbf{v}_{ab}\cdot\hat{\mathbf{x}}_{ab}$ is scalar along pair direction. But AR it's full $B_ab$ but we have rotational fronts, current sheets (transverse). Doesn't bite in Brio-Wu cause field varies only along x. -> somehow use more gradient tensor information without reducing/diluting sensitivity. 
-
-% \subsubsection{SLRV, SLRV2, SLRC (failed attempts) - notes to be rewritten}
-% Idea: replace the $F_{ab}$ limiter with a vector van Leer using the full $\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$ instead of just its longitudinal (twice-$\mathbf{x}_{ab}$-contracted) projection, since B-discontinuities are mostly transverse (B\_normal continuous across MHD fronts, so $F_{ab}$ compares the least informative component). Also clamp the correction (minmod-style) so it can never exceed or flip the sign of $B_{ab}$, dropping $\kappa$ and the Tricco-Price modulator entirely (SLRV). Two follow-up ablations: same vector limiter without the clamp (SLRV2), and a per-component minmod between the two one-sided candidates $-\mathbf{J}_{B_a}\mathbf{x}_{ab}^T$, $-\mathbf{J}_{B_b}\mathbf{x}_{ab}^T$ instead of a shared confidence number (SLRC).
-
-% Tested on Brio-Wu and the (optionally noise-seeded) Alfvén wave. All three land in the same place, clearly worse than plain SLR: ring at the shock fronts on Brio-Wu, worse than the constant-$\alpha_B$ baseline; on the noisy wave they preserve the wave amplitude better than SLR (less bleed) but barely touch the injected noise (residual power $P_n$ stays $\sim$4$\times$ SLR's -- worse than doing nothing scheme-specific at all).
-
-% The van Leer limiter is designed to approach zero whenever the local linear estimator stops being accurate, discontinuity or noise. $F_{ab}$ tests consistency along a single fixed direction ($\mathbf{x}_{ab}$, contracted twice), so local disagreement has nowhere to hide. The vector-based variants compare the full 3-vector $\mathbf{J}_B\mathbf{x}_{ab}^T$ on each side; noise that disrupts one component can still be outvoted/diluted by the other two agreeing (blend) or by both sides' per-component estimates rarely disagreeing in sign to begin with (minmod), since $\mathcal{O}(150)$-neighbour gradient smoothing suppresses noise similarly on all 3 components at once. Same designed sensitivity, just diluted by aggregating over more directions/components than the scalar test does.
-
-% Conclusion: plain SLR ($F_{ab}$, no Balsara-like modulation) is still the best performer on both fronts and noise; SLRB is statistically indistinguishable from it. Fixing the vector family properly would mean not diluting the agreement test across components while still using more of the gradient tensor, not a better limiter shape on top of the current one -- bigger rework, not pursued further given the time budget. Branch closed.
-
-% \textbf{Open concern with plain SLR (not yet tested):} $F_{ab}$'s testing scope is narrow. For AV on velocity, the dissipated quantity $\omega_{ab}=\mathbf{v}_{ab}\cdot\hat{\mathbf{x}}_{ab}$ is itself a scalar along the pair direction by construction (Balsara: exclude transverse/shear motion from dissipation on purpose), so the test and the dissipated content live in the same 1D subspace -- no mismatch possible. For AR, the dissipated content is the full $B_{ab}$ vector, and MHD discontinuities (rotational fronts, current sheets) are mostly transverse -- so a single-direction test gating a 3-component correction is a new mismatch introduced specifically by porting SLR from velocity to the induction equation. In Brio-Wu this doesn't bite because the field only varies along $x$, so any pair's $\mathbf{x}_{ab}$ samples the true (x-only) gradient regardless of which B-component carries the jump. It's untested whether this holds for genuinely oblique/multi-dimensional fronts (Orszag-Tang, rotor, turbulence, reconnection): a pair whose separation happens to sit near-perpendicular to the true local gradient direction gets an ill-conditioned, essentially arbitrary $F_{ab}$ regardless of how large the real transverse jump is -- plausibly giving orientation-dependent, patchy shock capture across a single front rather than the clean, direction-independent behaviour seen in the aligned 1D case.
-
-% \emph{Outlook:} fixing this without reintroducing the failures encountered means using more of the gradient tensor's transverse information \emph{without} diluting the single-direction sensitivity that makes $F_{ab}$ work. One direction worth trying: keep the test single-direction and well-conditioned \emph{per pair} (so each comparison stays as sensitive as $F_{ab}$ is now), but probe a front from several different pair orientations at once -- e.g.\ require agreement across multiple neighbours with different $\mathbf{x}_{ab}$ directions before trusting reconstruction, rather than blending/aggregating a single pair's full tensor. That's different from what SLRV/SLRV2/SLRC did (aggregate 3 components \emph{within} one pair) -- it aggregates \emph{across pairs}, each of which stays a narrow, sensitive, single-direction test, so an unlucky orientation for one neighbour doesn't matter as long as others aren't also unlucky.
 
 \subsection{Artificial Conductivity}
-Subgrid entropy mixing at shocks (where there's a genuine discontinuity in entropy, not just density). In MHD specifically: smoothing small temperature spike that can form near shocks.
+\label{sec:ac}
 
-Leaving out Wissings specific MHD shock capturing (eq 30) because AV scheme has different architecture than GASOLINE and doesn't need force direction. Detects convergence from velocity field itself instead rather than compressing force. Does not have this blindspot. BUT swapping AV signal speed for magnetosonic! 
+At contact discontinuities (temperature jumps at constant pressure and density), SPH's Lagrangian nature can produce small-scale pressure blips because particles with different internal energies are in close proximity but the kernel-smoothed pressure field is not exactly balanced. Artificial conductivity provides localized thermal diffusion to smooth this artifact \cite{Price2018}:
+\begin{equation}
+    \left(\frac{du_a}{dt}\right)_\mathrm{cond} = \alpha_u \sum_b m_b \frac{v^\mathrm{sig}_u \, (u_a - u_b)}{\bar{\rho}_{ab}}\; (\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab})\,,
+    \label{eq:ac}
+\end{equation}
+where $\alpha_u$ is the conductivity coefficient and $v^\mathrm{sig}_u = |\mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}|$ is the approach-velocity signal speed (with gravity) \cite{Rosswog2009}. The term is only active for converging particles. In MHD specifically, it smooths spurious temperature spikes near fast and slow shocks.
+
+
+\subsection{Time Integration}
+\label{sec:timeint}
+
+The magnetic-field components and the cleaning field $\psi/c_h$ are advanced in time using the Adams--Bashforth second-order (AB2) scheme
+\begin{equation}
+    q^{n+1} = q^n + \dot{q}^n \, \Delta t + \frac{1}{2}\frac{\dot{q}^n - \dot{q}^{n-1}}{\Delta t_{n-1}}\, |\Delta t|\, \Delta t\,,
+    \label{eq:ab2}
+\end{equation}
+where $\dot{q}^n$ denotes the time derivative at the current step and $\dot{q}^{n-1}$ that at the previous step. Hydrodynamic quantities use the same predictor--corrector integration as in the plain hydro propagator.
+
+The time step is constrained by the CFL condition
+\begin{equation}
+    \Delta t = K_\mathrm{cour} \min_a \frac{h_a}{\max(v_{\mathrm{sig},a},\; v_{\mathrm{mhd},a})}\,,
+    \label{eq:cfl}
+\end{equation}
+where $v_\mathrm{sig}$ is the pairwise signal velocity from AV and $v_\mathrm{mhd}$ the local fast magnetosonic speed \eqref{eq:vmhd}.
