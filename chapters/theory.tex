@@ -77,26 +77,19 @@ with conjugate energy equation
 where $\mathbf{v}_{ab} = \mathbf{v}_a - \mathbf{v}_b$. The symmetric appearance of pressure terms in indices $a$ and $b$ ensures Newton's third law holds pairwise.
 
 
-\subsubsection*{Variational derivation and conservation}
+\subsubsection*{Variational derivation and grad-h correction}
 
-A more rigorous route to \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} starts from the discretized fluid Lagrangian
-\begin{equation}
-    L = \sum_b m_b \left( \tfrac{1}{2} v_b^2 - u(\rho_b, s_b) \right)\,,
-    \label{eq:sph_lagrangian}
-\end{equation}
-where density is given by \eqref{eq:density_sum}. Applying the Euler-Lagrange equations and using the first law of thermodynamics $(\partial u / \partial \rho)_s = P / \rho^2$ recovers equations \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} without ad hoc symmetrization \cite{Rosswog2009}. Conservation of linear momentum, angular momentum, and total energy follows as consequences of translational, rotational, and time-translation symmetries of the Lagrangian.
-
-When each particle uses its own smoothing length $h_a$, determined implicitly from density, the chain-rule derivative $\delta \rho_b / \delta \mathbf{r}_a$ introduces an additional correction factor $\Omega_a$ \cite{Rosswog2009}, which we sometimes also refer to as grad-h correction:
+Equations \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} can be derived from a discretized fluid Lagrangian via the Euler--Lagrange equations \cite{Rosswog2009}, guaranteeing conservation of linear and angular momentum and total energy by construction. When each particle uses its own smoothing length $h_a$, the variational derivation introduces the grad-h correction factor \cite{Rosswog2009}
 \begin{equation}
     \Omega_a = 1 - \frac{\partial h_a}{\partial \rho_a} \sum_b m_b \frac{\partial W_{ab}(h_a)}{\partial h_a}\,,
     \label{eq:gradh_omega}
 \end{equation}
-and the fully self-consistent momentum equation becomes
+and the self-consistent momentum equation becomes
 \begin{equation}
-    \frac{d\mathbf{v}_a}{dt} = -\sum_b m_b \left( \frac{P_a}{\Omega_a \rho_a^2} \nabla_a W_{ab}(h_a) + \frac{P_b}{\Omega_b \rho_b^2} \nabla_a W_{ab}(h_b) \right)\,.
+    \frac{d\mathbf{v}_a}{dt} = -\sum_b m_b \left( \frac{P_a}{\Omega_a \rho_a^2} \nabla_a W_{ab}(h_a) + \frac{P_b}{\Omega_b \rho_b^2} \nabla_a W_{ab}(h_b) \right)\,,
     \label{eq:sph_mom_gradh}
 \end{equation}
-Note that each term uses the kernel evaluated with the respective particle's smoothing length.
+where each term uses the kernel evaluated with the respective particle's smoothing length.
 
 
 \subsection{The Integral Approach to Derivatives (IAD)}
@@ -105,39 +98,19 @@ Note that each term uses the kernel evaluated with the respective particle's smo
 The standard SPH gradient \eqref{eq:sph_grad} reproduces the gradient of a constant but not of a linear field on disordered particle distributions; the error is controlled by how well the kernel sum approximates the partition of unity $\sum_b V_b W_{ab} = 1$, which degrades near boundaries, density jumps, and general uneven particle sampling \cite{Cabezon2012}. The integral approach to derivatives (IAD) corrects this through renormalization of the gradient using a matrix constructed from the local particle geometry.
 
 
-\subsubsection*{The correction matrix}
-
-Starting from the Taylor expansion $f(\mathbf{r}_b) - f(\mathbf{r}_a) \approx \nabla f_a \cdot (\mathbf{r}_b - \mathbf{r}_a)$ and inserting it into the integral identity $\mathbf{I}(\mathbf{r}_a) = \int [f(\mathbf{r}') - f(\mathbf{r}_a)](\mathbf{r}' - \mathbf{r}_a) W \, dV$, the gradient is recovered by solving a $3 \times 3$ linear system \cite{Cabezon2012}:
-\begin{equation}
-    \nabla f_a = \boldsymbol{\tau}_a^{-1} \, \mathbf{I}_a \,,
-    \label{eq:iad_system}
-\end{equation}
-where the correction matrix $\boldsymbol{\tau}$ has elements
-\begin{equation}
-    \tau_{ij,a} = \sum_b V_b \, (x_{i,b} - x_{i,a})(x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,,
-    \label{eq:tau_matrix}
-\end{equation}
-with $V_b$ the volume element of particle $b$ (see below), and the right-hand side vector is
-\begin{equation}
-    I_{k,a} = \sum_b V_b \, f_b \, (x_{k,b} - x_{k,a}) \, W_{ab}(h_a)\,.
-    \label{eq:iad_rhs}
-\end{equation}
-The elements $c_{ij,a}$ of the inverse $\boldsymbol{\tau}_a^{-1}$ are precomputed once per timestep and reused in every gradient evaluation.
-
-
 \subsubsection*{The corrected gradient operator}
 
-Rather than forming $\mathbf{I}_a$ explicitly for each field, one defines the corrected gradient operator \cite{Cabezon2012, Cabezon2017}
+From a first-order Taylor expansion, one constructs a symmetric $3\times 3$ correction matrix $\boldsymbol{\tau}_a$ from local particle geometry, whose inverse $c_{ij,a} = (\boldsymbol{\tau}_a^{-1})_{ij}$ (precomputed once per timestep) defines the corrected gradient operator \cite{Cabezon2012, Cabezon2017}:
 \begin{equation}
-    \mathcal{A}_{i,ab}(h_a) = \sum_{j} c_{ij,a} \, (x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,,
+    \mathcal{A}_{i,ab}(h_a) = \sum_{j} c_{ij,a} \, (x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,.
     \label{eq:iad_grad}
 \end{equation}
-which replaces the standard kernel gradient $\partial W_{ab} / \partial x_{i,a}$ everywhere in the SPH equations. Any standard SPH expression becomes IAD-compatible through the substitution
+This replaces the standard kernel gradient everywhere in the SPH equations:
 \begin{equation}
     \frac{\partial W_{ab}(h_a)}{\partial x_{i,a}} \longrightarrow \mathcal{A}_{i,ab}(h_a)\,.
     \label{eq:iad_replacement}
 \end{equation}
-By construction, this operator reproduces the gradient of any linear function exactly regardless of particle distribution, making the IAD scheme first-order consistent (linear completeness), in contrast to the standard SPH gradient which is only zeroth-order consistent \cite{Cabezon2012}.
+By construction, $\mathcal{A}$ reproduces the gradient of any linear function exactly regardless of particle distribution, making the IAD scheme first-order consistent \cite{Cabezon2012}.
 
 
 \subsubsection*{Generalized volume elements}
@@ -153,64 +126,34 @@ with density recovered as $\rho_a = m_a/V_a = k_a m_a/X_a$. The choice implement
 \subsubsection*{The ISPH momentum and energy equations}
 
 Combining the IAD gradient, GVE, and $\Omega_a$ grad-h correction within the variational framework of \S\ref{sec:sph} yields the ISPH\footnote{``Integral SPH''---the conservative variant of IAD that preserves linear and angular momentum exactly \cite{Cabezon2022}.} momentum equation \cite{GarciaSenz2022}:
-
-TODO: double check eq29+32. 
 \begin{equation}
-    \ddot{x}^i_a = -\sum_b m_b \left[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \, \mathcal{A}_{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b} \, \mathcal{A}_{i,ab}(h_b) \right]\,,
+    \frac{dv^i_a}{dt} = -\sum_b m_b \left[\frac{X_a^{2-\sigma_{ab}} X_b^{\sigma_{ab}}\, P_a}{\Omega_a m_a^2 k_a} \, \mathcal{A}_{i,ab}(h_a) + \frac{X_b^{2-\sigma_{ab}} X_a^{\sigma_{ab}}\, P_b}{\Omega_b m_b^2 k_b} \, \mathcal{A}_{i,ab}(h_b) \right]\,,
     \label{eq:isph_mom}
 \end{equation}
 with conjugate energy equation
 \begin{equation}
-    \frac{du_a}{dt} = \frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \sum_b m_b \, v^i_{ab} \, \mathcal{A}_{i,ab}(h_a)\,.
+    \frac{du_a}{dt} = \sum_b m_b \frac{X_a^{2-\sigma_{ab}} X_b^{\sigma_{ab}}\, P_a}{\Omega_a m_a^2 k_a} \, v^i_{ab} \, \mathcal{A}_{i,ab}(h_a)\,.
     \label{eq:isph_energy}
 \end{equation}
-The structure mirrors the standard grad-h SPH equations \eqref{eq:sph_mom_gradh}, with kernel gradients replaced by IAD operators and $1/\rho^2$ replaced by GVE-derived $X^2/(m^2 k)$. When the partition of unity is exact ($k_a X_a = m_a$, i.e.\ $\rho_a = \rho_a^0$), \eqref{eq:isph_mom} reduces to \eqref{eq:sph_mom_gradh} with IAD gradients. Conservation of linear and angular momentum remains exact; energy conservation follows from the variational derivation \cite{GarciaSenz2022}.
-
-SPH-EXA additionally implements a smooth transition between the ISPH symmetrization in \eqref{eq:isph_mom} and a more diffusive form for large density contrasts, controlled by the Atwood number $\mathcal{A}_t = |\rho_a - \rho_b|/(\rho_a + \rho_b)$. Below a threshold $\mathcal{A}_{t,\min}$ the ISPH form applies; above $\mathcal{A}_{t,\max}$ the volume-element prefactors become symmetric ($X_a X_b$ in both terms), similar to the GDSPH discretization \cite{WissingShen2020}. A power-law ramp interpolates between the two regimes.
+The interpolation parameter $\sigma_{ab} \in [0,1]$ controls the symmetrization of the volume-element prefactors \cite{GarciaSenz2022}. At $\sigma = 0$ the pure ISPH form is recovered (prefactors $X_a^2$ and $X_b^2$), which reduces to \eqref{eq:sph_mom_gradh} with IAD gradients when the partition of unity is exact ($k_a X_a = m_a$). At $\sigma = 1$ the prefactors become symmetric ($X_a X_b$), recovering a form similar to the GDSPH discretization \cite{WissingShen2020}. In SPH-EXA, $\sigma$ is set per particle pair from the local Atwood number $\mathcal{A}_t = |\rho_a - \rho_b|/(\rho_a + \rho_b)$: below a threshold $\mathcal{A}_{t,\min}$, $\sigma = 0$ (ISPH); above $\mathcal{A}_{t,\max}$, $\sigma = 1$ (GDSPH-like); a linear ramp interpolates between the two. This prevents the E0-error of the ISPH kernel normalization from generating spurious forces at strong density contrasts \cite{GarciaSenz2022}. Conservation of linear and angular momentum remains exact; energy conservation follows from the variational derivation.
 
 
 \subsection{Artificial Viscosity}
 \label{sec:av}
 
-The Euler equations allow for discontinuities (shocks) that finite-resolution cannot represent. Without additional dissipation, shocks produce unphysical post-shock oscillations that can grow and corrupt the solution. Artificial viscosity (AV) provides controlled, resolution-scale dissipation converting kinetic energy of converging flow into heat, spreading shocks over a few smoothing lengths and make it representable in SPH \cite{Rosswog2009}.
-
-
-\subsubsection*{The Monaghan viscosity}
-
-The standard AV adds a pairwise pressure-like term $\Pi_{ab}$ to the momentum equation. SPHEXA uses the signal-velocity formulation \cite{Rosswog2009}, where the viscous acceleration and heating enter as
-\begin{align}
-    \left(\frac{d\mathbf{v}_a}{dt}\right)_\mathrm{AV} &= -\sum_b m_b \, \Pi_{ab} \, \nabla_a W_{ab}\,, \label{eq:av_mom} \\
-    \left(\frac{du_a}{dt}\right)_\mathrm{AV} &= \frac{1}{2} \sum_b m_b \, \Pi_{ab} \, \mathbf{v}_{ab} \cdot \nabla_a W_{ab}\,, \label{eq:av_energy}
-\end{align}
-where, for approaching particles ($\mathbf{v}_{ab} \cdot \mathbf{r}_{ab} < 0$),
+The Euler equations admit shock discontinuities that finite-resolution SPH particles cannot represent directly. Without additional dissipation, shocks produce unphysical post-shock oscillations. Artificial viscosity (AV) provides controlled, resolution-scale dissipation that converts kinetic energy of converging flow into heat, spreading shocks over a few smoothing lengths \cite{Rosswog2009}. The standard Monaghan AV adds a pairwise viscous pressure $\Pi_{ab}$ to the momentum and energy equations, active only for approaching particles ($\mathbf{v}_{ab} \cdot \mathbf{r}_{ab} < 0$). In the signal-velocity formulation used in SPHEXA \cite{Rosswog2009},
 \begin{equation}
     \Pi_{ab} = \frac{1}{\bar{\rho}_{ab}} \left[\frac{\alpha}{4}(\bar{c}_a + \bar{c}_b)\, w_{ab} + \beta \, w_{ab}^2 \right]\,,
     \label{eq:av_Pi}
 \end{equation}
-with $w_{ab} = \mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}$ the projected approach velocity, $\bar{c}$ the signal speed (sound speed in pure hydro, fast magnetosonic speed in MHD, see \S\ref{sec:spmhd}), $\alpha$ the linear viscosity coefficient, and $\beta = 2$ the quadratic coefficient. The linear term models bulk viscosity and damps oscillations at the shock front; the quadratic term provides additional dissipation for strong shocks to prevent particle interpenetration. $\Pi_{ab} = 0$ for receding particles.
+with $w_{ab} = \mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}$ the projected approach velocity, $\bar{c}$ the signal speed (sound speed in hydro, fast magnetosonic speed in MHD), $\alpha$ the viscosity coefficient, and $\beta = 2$. The linear term damps oscillations at the shock front; the quadratic term prevents particle interpenetration in strong shocks.
 
-In SPHEXA, the kernel gradients in \eqref{eq:av_mom}--\eqref{eq:av_energy} are replaced by IAD operators and density by GVE-derived values $\rho_a = k_a m_a / X_a$, following the pattern established in \S\ref{sec:iad}.
-
-
-\subsubsection*{Limiting unwanted dissipation}
-
-Away from shocks, AV generates spurious dissipation damping physical shear flows, vortices, and sound waves. Several strategies mitigate this:
-
-\paragraph{Balsara limiter.} The Balsara factor \cite{Balsara1995} distinguishes compression from shear through the ratio
+Away from shocks, AV generates spurious dissipation that damps physical shear flows and vortices. The Balsara limiter \cite{Balsara1995} addresses this by distinguishing compression from shear via
 \begin{equation}
     f_a = \frac{|\nabla \cdot \mathbf{v}|_a}{|\nabla \cdot \mathbf{v}|_a + |\nabla \times \mathbf{v}|_a + \epsilon_a}\,, \qquad \epsilon_a = 10^{-4}\,\frac{c_a}{h_a}\,,
     \label{eq:balsara}
 \end{equation}
-approaching unity in convergent flow (shocks) and zero in pure shear. The pair-averaged $\bar{f}_{ab} = \tfrac{1}{2}(f_a + f_b)$ is applied as a prefactor to $\Pi_{ab}$.
-
-\paragraph{Time-dependent $\alpha$.} The Morris \& Monaghan scheme \cite{MorrisMonaghan1997} evolves the viscosity coefficient per particle,
-\begin{equation}
-    \frac{d\alpha_a}{dt} = -\frac{\alpha_a - \alpha_\mathrm{min}}{\tau_a} + S_a\,, \qquad \tau_a = \frac{h_a}{\xi\, c_a}\,,
-    \label{eq:mm97}
-\end{equation}
-with source term $S_a = \max[-(\nabla \cdot \mathbf{v})_a, 0]$ raising $\alpha$ in compressions and decay time $\tau_a$ relaxing it back to $\alpha_\mathrm{min}$ in smooth flow.
-
-\paragraph{Slope-limited reconstruction (SLR).} A more recent approach replacing heuristic switches entirely is discussed in \S\ref{sec:slr}.
+which approaches unity in convergent flow and zero in pure shear; the pair-averaged $\bar{f}_{ab}$ multiplies $\Pi_{ab}$. The Morris \& Monaghan scheme \cite{MorrisMonaghan1997} further reduces dissipation by evolving $\alpha$ per particle with a source/decay ODE that raises it in compressions and relaxes it to a floor value in smooth flow. A more recent approach, slope-limited reconstruction (SLR), replaces both heuristic switches entirely and is discussed in \S\ref{sec:slr}.
 
 
 \subsection{Ideal Magnetohydrodynamics}
@@ -266,7 +209,7 @@ We now present the SPH discretization of MHD equations as implemented in SPHEXA.
 
 The magnetic contribution to the momentum equation uses the same ISPH structure as \eqref{eq:isph_mom}, with the Maxwell stress tensor \eqref{eq:maxwell_stress} entering alongside gas pressure:
 \begin{equation}
-    \ddot{x}^i_a\big|_\mathrm{mag} = \sum_b m_b \left[ \frac{X_a^2}{\Omega_a m_a^2 k_a}\, S_a^{ij}\, \mathcal{A}_{j,ab}(h_a) + \frac{X_b^2}{\Omega_b m_b^2 k_b}\, S_b^{ij}\, \mathcal{A}_{j,ab}(h_b) \right]\,.
+    \frac{dv^i_a}{dt}\bigg|_\mathrm{mag} = \sum_b m_b \left[ \frac{X_a^2}{\Omega_a m_a^2 k_a}\, S_a^{ij}\, \mathcal{A}_{j,ab}(h_a) + \frac{X_b^2}{\Omega_b m_b^2 k_b}\, S_b^{ij}\, \mathcal{A}_{j,ab}(h_b) \right]\,.
     \label{eq:spmhd_mom}
 \end{equation}
 This represents a Phantom-style $\rho^2$ symmetrization (each particle uses its own stress tensor and volume-element prefactor) adapted to the ISPH framework, rather than the GDSPH form of Wissing \& Shen \cite{WissingShen2020} which uses $S_a^{ij} + S_b^{ij}$ with a single $1/(\rho_a \rho_b)$ prefactor \cite{Price2018}. The Atwood-number blending described in \S\ref{sec:iad} applies to both gas pressure and magnetic stress terms.
