@@ -17,6 +17,7 @@
 % \usepackage[style=authoryear, maxcitenames=1, mincitenames=1, uniquename=false, uniquelist=false]{biblatex}
 \usepackage[style=numeric]{biblatex}
 \addbibresource{references.bib}
+\usepackage[colorinlistoftodos]{todonotes}
 
 \title{Master Thesis \\ \vspace{0.5cm}
     \small{Smoothed Particle Magnetohydrodynamics on Exascale computing systems}}
@@ -36,6 +37,8 @@
 % \setcounter{tocdepth}{2}
 % \tableofcontents
 % \twocolumn
+\listoftodos 
+\newpage
 \input{chapters/introduction}
 \input{chapters/theory}
 \input{chapters/implementation}
