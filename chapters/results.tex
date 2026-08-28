@@ -1,29 +1,73 @@
 \section{Numerical Tests}
-Test cases, comparative const/switch/slr plots. Explain glass block setup (relaxed/melted lattice. resolution numbers refer to these original lattices)
+In this chapter we present the results produced by SPH-EXA on a suite of standard MHD tests. With the first seven test cases we verify that our implementation produces results comparable to the reference codes \cite{WissingShen2020, Price2018}. We quantify accuracy and other relevant metrics such as the mean divergence error \eqref{eq:divb_error} and magnetic energy loss through artificial resistivity (resistive heating). Finally, in §\ref{sec:mhd_turb}, we apply a magnetic field to subsonic turbulence in a high-resolution simulation.
 
-Divergence Error: Show that divB stays bounded and decreases with increasing resolution. 
+All tests are set up with glass-like initial conditions using the template glass blocks from SPH-EXA's public dataset \cite{Keller2023}. This is to be kept in mind when comparing SPH-EXA to codes using lattice-based initial conditions. The glass structure necessarily comes with some jittering due to particle reordering, resulting in a small but noticeable velocity noise floor. This will negatively impact certain tests which otherwise have almost perfectly uniform flow when using a lattice (e.g. the MHD advection loop §\ref{sec:MHD_loop}). 
 
-Show oscillations somehow that happen without resistivity? 
+For some MHD tests we did create initial conditions using both a regular grid and a face-centered cubic (FCC) grid. However, in our runs we see the lattices quickly melting into glass after only a few time steps. This is likely due to the kernel design choices of SPH-EXA, namely using a constant number \texttt{ng0} for the target number of neighbors combined with the sinc6 kernel (§\ref{sec:kernel_approximation}). A different kernel implementation should be able to keep a lattice structure and therefore uniform flow intact in SPH-EXA, but this is out of scope for this project.   
+\todo[inline]{explain why only certain kernels will keep grid intact}
 
-Fields and cmaps
+Considering the presence of this velocity noise, we also expect the divergence error of most tests to be slightly larger than the corresponding references. Velocity noise enters the divergence error as one of the dominant source through the discrete induction equation, which is built from the velocity gradient tensor \eqref{eq:induction_code}. 
+
+Whenever we refer to a resolution (e.g. $n_x = 250$) of a simulation using glass blocks, we refer to the resolution along the axes of the original grid with which the glass was generated. I.e. our glass block \texttt{50c.h} (read "50 cubed") was created from a $50 \times 50 \times 50$ lattice. The total number of particle remains the same, but they do not remain well ordered in the axis direction. 
+
+\paragraph{Default code parameters}
+If not explicitly written otherwise, the test setups use the following default parameters. We use the sinc6 smoothing kernel with \texttt{ng0=150} desired neighbors per particle. AV uses AVSLR with constant $\alpha = 1.0$ (see §\ref{sec:slr}). And so does AR with ARSLR and $\alpha_B=1.0$. Magnetic constant $\mu_0 = 1$. We use an adiabatic EOS (equation of state) with $\gamma = 5/3$. Artificial conductivity (AC) is disabled as described in §\ref{sec:ac}. \todo[inline]{cleaning terms, other dissipation?}
+
+\paragraph{Naming of AR schemes}
+For simplicity we label the baseline scheme, using constant $\alpha_B = 0.5$, in our figures as \texttt{a05}. The schemes employing reconstruction as introduced in §\ref{sec:slr} are labelled \texttt{SLR}, \texttt{SLRB} and \texttt{SLRB2} respectively. All AR schemes use the self-switching $v_{sig,B}$ as defined in \eqref{eq:vsigB}.
+
+\paragraph{Plotting Method}
+The two-dimensional slices plotted in the following sections are created with the following method: A particle $i$ is only selected if its distance to the slice plane is smaller than $2h_i$, i.e. the plane actually falls inside its kernel support. Then the selected particles are interpolated onto a regular grid of $512 \times 512$ pixels. Pixel values are calculated with the normalized SPH sum $ {\sum f_i W(r_{ip}/ h_i)}/{\sum W(r_{ip}/h_i)}$, where $W$ is the cubic spline kernel, $h_i$ the particle's smoothing length, and $r_{ip}=|r_i-r_p|$ the full 3D distance between the particle and the pixels center (including out-of-plane offset). This way of selection and interpolation tries to stay as close as possible to the actual physical representation. 
+
+% Divergence Error: Show that divB stays bounded and decreases with increasing resolution. Flat plateau in divB error plot -> source limited, not cleaning limited. 
+
+% Fields and cmaps
+% \begin{itemize}
+%     \item |B| and related: magma
+%     \item density: bone\_r, gray\_r
+%     \item velocity/heuristics: viridis
+%     \item lineplots: seaborn deep
+% \end{itemize}
+% Plots with no titles. Mby remove top/right spines. Scatter with small markers + alpha. Fixed line color for schemes in line plots. 
+
+% sinc 6 kernel. glass initial conditions (exception for loop). noise floor (kernel+glass) due to particle reordering may negatively impact certain tests. but keep that because that's application? still some tests with constant AV to reduce noise impact and more cleanly isolate differences in AR schemes. constant AV smoothes noise which switches and SLR ignore (dissipation is pure harm in absence of shock). Tested lattice but melts. 
+
+% resHeat plots always in combination with structural plots, L1 errors/divB error. Use deltaE diss / Emagt=0. Axis time. or just report final. 
+
+\subsection{Alfvén Wave}
+We perform the traveling circularized polarized (CP) Alfvén wave test \cite{Toth2000} which provides an analytical solution to the ideal MHD equations. Because the magnetic pressure is uniform, the wave is expected to remain the same after each period. Deviation is a good measurement of numerical dissipation and dispersion. 
+
+The 3D setup follows the one in used in PHANTOM \cite{Price2018} and GASOLINE2 \cite{WissingShen2020}: A periodic box of size $L\times L/2 \times L/2$ with $L=3$ with the waves traveling at a $30^\circ$ angle to the $x$ axis get a true multidimensional test of the full 3D operators. The rotated parallel and transverse velocities and magnetic fields are: 
+
+$ B_1 = 1, v_1 = 0\\
+B_2 = v_1 = 0.1 \sin(2\pi x_1/\lambda), \\
+B_3 = v_2 = 0.1 \cos(2\pi x_1/\lambda), $
+
+where $x_1$ is the rotated direction of propagation and $\lambda=1$ is the wavelength. We use density $\rho = 1$ and uniform pressure $P=0.1$. Figure \ref{fig:alfven} shows the results after $t=5$ periods using $[n_x,n_y,n_z]=[120,60,60]$. We also plot the L1-error with increasing resolution and observe second-order convergence as expected. As per default parameters, all dissipation mechanisms (bar conductivity) are active. 
+
+% Reduced eMag loss/dissipative heating with SLR. quantitative accuracy test. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
+    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_convergence.pdf}
+    \caption{Results of the CP Alfvén Wave test. The particle magnetic field is projected onto the transverse axis $B2$ and scattered against position along the propagation direction $x_1$. The analytical solution (initial condition) is shown in black. In the second panel the L1 error $L_1(B_2)$ is shown as a function of particle count $n_x$.}
+    \label{fig:alfven}
+\end{figure}
+
+\paragraph{Noisy Alfvén Wave}
+We present a slight modification of the Alfvén wave test, not present in the reference literature, specifically to evaluate the performance of ARSLR. Additionally to the classic setup defined above, we add positionally-seeded white-noise perturbation to the magnetic field $B$ and velocity field $v$ in the initial conditions. With this we aim to observe how different dissipation schemes tackle incoherent noise (unresolved structure) versus the coherent wave (resolved structure). As described in §\ref{sec:slr}, the hope for ARSLR is to use full dissipation on the former while being able to linearly reconstruct and thus preserve the latter. 
+
+To quantify this we perform a least-squares fit of the mode to both transverse components $B_2$ and $B_3$, and decompose the error into three errors: 
 \begin{itemize}
-    \item |B| and related: magma
-    \item density: bone\_r, gray\_r
-    \item velocity/heuristics: viridis
-    \item lineplots: seaborn deep
+    \item Amplitude bleed: The ratio $A/A_0$ of the fitted mode amplitude to the initial $A_0=0.1$ to isolate resolved structure dissipation. 
+    \item Phase error: The fitted phase minus the analytic phase to isolate dispersion. 
+    \item $\delta B_n$: RMS of the mode subtracted transverse field to measure how fast the seeded white noise is cleaned up. 
 \end{itemize}
-Plots with no titles. Mby remove top/right spines. Scatter with small markers + alpha. Fixed line color for schemes in line plots. 
 
-Note: ng0 is overwritten by test case parameters. Often 150 for MHD tests. Wissing uses 200. Other SPHEXA hydro tests 100. 
+Figure \ref{fig:alfven_noise} shows \todo{initial condition and t=20?} the results 
 
-sinc 6 kernel. glass initial conditions (exception for loop). noise floor (kernel+glass) due to particle reordering may negatively impact certain tests. but keep that because that's application? still some tests with constant AV to reduce noise impact and more cleanly isolate differences in AR schemes. constant AV smoothes noise which switches and SLR ignore (dissipation is pure harm in absence of shock). Tested lattice but melts. 
-
-divB error slightly larger than wissing in all tests. Velocity noise one of dominant sources. Discrete induction eq built from velocity gradient tensor. Flat plateau in divB error plot -> source limited, not cleaning limited. 
-
-resHeat plots always in combination with structural plots, L1 errors/divB error. Use deltaE diss / Emagt=0. Axis time. or just report final. 
-
-\subsection{Alfven Wave}
-Comparison with analytic solution. Convergence with increased resolution (order). Reduced eMag loss/dissipative heating with SLR. quantitative accuracy test. 
+%better distinguish between these two types and, in this case where shocks are absent, to only dissipate the components of $B$ belonging to the former. 
 
 Noisy Alfven Wave: testing noise cleaning capabilities of AR schemes. SLR results in less amplitude bleed and better noise cleaning at the same time compared to baseline. 
 
@@ -31,17 +75,9 @@ SW is also noisier, just mention quickly, already rejected concept anyways.
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
-    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_convergence.pdf}
-    \caption{CP Alfven Wave, nx=120. And convergence plot. Define B2 and x1}
-    \label{fig:alfven}
-\end{figure}
-
-\begin{figure}
-    \centering
     \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_amp.pdf}
     \includegraphics[width=0.49\linewidth]{img/Alfven/noise/alfven_analysis_noise.pdf}
-    \caption{Noisy Alfven Wave: Amplitude bleed (fitted amplitude/initial amplitude) and noise cleaning rate. Adding white noise to B and v with noiseAmp=0.01. SLR wins out in both conserving the resolved structure (amplitude) and dissipating unresolved/uncorrelated noise. nx=120}
+    \caption{Results of the noisy Alfven Wave. First panel shows amplitude bleed $A(t)/A_0$ (fitted amplitude/initial amplitude) and noise cleaning rate. Adding white noise to B and v with noiseAmp=0.01. SLR wins out in both conserving the resolved structure (amplitude) and dissipating unresolved/uncorrelated noise. nx=120}
     \label{fig:alfven_noise}
 \end{figure}
 
@@ -56,7 +92,7 @@ SW is also noisier, just mention quickly, already rejected concept anyways.
 8 panel plot. Analytical (high res grid calc) solution. Test dissipation switches, reduce overshoot + oscillations. 
 
 Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-shock. Constant AV improves shape. 
-
+Gamma = 2.0
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{img/Brio-Wu/shocktube_compare_step2.pdf}
@@ -68,6 +104,7 @@ Spike in pressure can also be seen in pure hydro where Brio-Wu reduces to sod-sh
 Energy conservation under extreme compression. Most direct comparison to pure hydro test. 
 
 Shock front less sharp.
+Show oscillations somehow that happen without resistivity? 
 
 Plot 4 panels: density, Ekin, P, Pmag
 
@@ -78,11 +115,12 @@ Plot 4 panels: density, Ekin, P, Pmag
     \includegraphics[width=0.49\linewidth]{img/sedov/slice_KE_step2_y+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/sedov/slice_p_step2_y+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/sedov/slice_Pmag_step2_y+0.0000.pdf}
-    \caption{Magnetic Sedov Blast: Density, Ekin, P, Pmag=Emag}
+    \caption{Magnetic Sedov Blast: Density, Ekin, P, Pmag=Emag. Double shock in pressure. outer shock visible more clearly. Wissing reference is blurry.}
     \label{fig:placeholder}
 \end{figure}
 
 \subsection{Advection loop}
+\label{sec:MHD_loop}
 divB control and numerical diffusion of B. 
 
 Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. divB error without normalization. 
@@ -164,7 +202,11 @@ Angular momentum handling. divB cleaning under strong twisting.
 
 The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$, using a relaxed glass. The ambient medium ($\rho$ = 1) is sampled at a mean particle spacing $\Delta = 1/n_x$ with $n_x = 270$ (2.19 $\times$ $10^6$ particles), equivalent to Wissing \& Shen (2020)'s [256, 296, 12] close-packed setup in linear resolution; our slab is 30 particle spacings thick rather than 12. The dense cylinder ($\rho$ = 10, R = 0.1) is sampled at $\Delta$/sqrt(10) in x and y at unchanged z spacing.
 
+gamma=1.4
+
 anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/sqrt(10), z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
+
+
 
 \begin{figure}
     \centering
@@ -176,19 +218,22 @@ anisotropically sampled (different from wissing)!! compresses the inner glass in
 \subsection{Magnetized Kelvin-Helmholtz instability}
 Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
 t=1.6 hydro rolls look like the GDSPH panels, not TSPH. Thin arms, no blobbing, no visible surface-tension gaps at the interface. new VE scheme?
+Match growth rate to McNally.txt data. 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{img/KH/slice_rho_step3_z+0.0000.png}
-    \caption{Kelvin-Helmholtz Instability. Note: direction switched compared to Robert}
+    \caption{REPLACE Kelvin-Helmholtz Instability. Note: direction switched compared to Robert}
     \label{fig:placeholder}
 \end{figure}
 
 \subsection{Subsonic MHD Turbulence}
+\label{mhd_turb}
 
-Application. DivB error + resistive heating. 
+Application. DivB error + resistive heating. $1600^3$ particles (more than 4 billion). 
 
 Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$. 
+gamma=1.001
 
 \begin{equation}
     \beta = \frac{P_{gas}}{P_{mag}} = \frac{\rho c^2}{B_0^2 / 2 \mu_0} \Rightarrow B_0 = \sqrt{2 \rho c^2 / \beta}
@@ -201,7 +246,7 @@ Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu
     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_rho_step4_y+0.0000.png}
     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_vmag_step4_y+0.0000.png}
     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_Bmag_step4_y+0.0000.png}
-    \caption{MHD turbulence using a mean magnetic field $B_0 \hat{z}$ with $B_0 = 0.15$}
+    \caption{REPLACE MHD turbulence using a mean magnetic field $B_0 \hat{z}$ with $B_0 = 0.15$}
     \label{fig:placeholder}
 \end{figure}
 

@@ -5,3 +5,11 @@ Use sedov blast, KH and turbulence to compare MHD performance to SPH baseline (G
 Num gpus: 1,2,4,8,16,32? A100 important cause more industry standard than 3090? 
 
 Small study on ARSLR(V) impact on perf. Any maybe memory? 
+
+Different minDt but that's physics/numerics and not code performance. 
+
+MHD needs full velocity jacobian, doesn't compress into 6 fields. SLR needs 9 fields of B jacobian. Using template programming to not allocate if using constant scheme. 
+        
+% The apparent super-linear efficiency at 2 and 16 GPUs is a focus-tree traversal artifact, not a real scaling effect. In weak scaling, the total particle count doubles at each GPU step (1→2→4→8→16→32), which cycles through three distinct octree alignment bands every factor of 8 — the cstone focus tree's maxStackNc (neighbor-search stack depth) follows a repeating pattern of 36→27→18→36→27→18. Configs landing in the maxStackNc=27 band (n=189 at 2 GPUs, n=378 at 16 GPUs) have \~40\% lower per-particle traversal cost despite identical neighbor counts (93 for all configs), while strong scaling is unaffected because the total particle count stays fixed.
+
+% ijloop fusion is likely a solid win on the default and could backfire in the clustered neighborhood
