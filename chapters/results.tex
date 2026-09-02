@@ -5,7 +5,7 @@ In this chapter we present the results produced by SPH-EXA on a suite of standar
 All tests are set up with glass-like initial conditions using the template glass blocks from SPH-EXA's public dataset \cite{Keller2023}. This is to be kept in mind when comparing SPH-EXA to codes using lattice-based initial conditions. The glass structure necessarily comes with some jittering due to particle reordering, resulting in a small but noticeable velocity noise floor. This will negatively impact certain tests which otherwise have almost perfectly uniform flow when using a lattice (e.g. the MHD advection loop §\ref{sec:MHD_loop}). 
 
 For some MHD tests we did create initial conditions using both a regular grid and a face-centered cubic (FCC) grid. However, in our runs we see the lattices quickly melting into glass after only a few time steps. This is likely due to the kernel design choices of SPH-EXA, namely using a constant number \texttt{ng0} for the target number of neighbors combined with the sinc6 kernel (§\ref{sec:kernel_approximation}). A different kernel implementation should be able to keep a lattice structure and therefore uniform flow intact in SPH-EXA, but this is out of scope for this project.   
-\todo[inline]{explain why only certain kernels will keep grid intact}
+\todo[inline]{explain why only certain kernels will keep grid intact. iteratively-summed h gives force-error perturbations also in Wissing.}
 
 Considering the presence of this velocity noise, we also expect the divergence error of most tests to be slightly larger than the corresponding references. Velocity noise enters the divergence error as one of the dominant source through the discrete induction equation, which is built from the velocity gradient tensor \eqref{eq:induction_code}. 
 
@@ -133,7 +133,7 @@ A 3D square box of length $L=1$ is initialized with uniform density and resoluti
 
 Figure \ref{fig:sedov} shows the results after $t=0.02$. Compared to Fig. 8 in Wissing \& Shen (2020)\cite{WissingShen2020}, the bean-like shape of our blast wave appears a bit narrower with a slightly thicker shock front. The precise internal structure is hard to compare as their Fig 8. is a bit blurry (especially apparent when comparing the pressure panel). We used same per-particle-h and kernel interpolation plotting method as described in the beginning of §\ref{sec:numerical_tests}. But overall we observe similar structure. We also clearly see the expected double-shock in thermal pressure and the outer ring in the other three panels. 
 
-\todo[inline]{Emag conservation over time. high res version? sedov a05 as comparison (more smoothed?)}
+Figure \ref{fig:sedov_metrics} shows that the conservation of total energy and the mean divergence error both improve with increasing resolution. Compared to the reported number of $\langle \varepsilon_{\text{divB}}\rangle=10^{-5}$ in Wissing \& Shen (2020) \cite{WissingShen2020}, these results are still one order of magnitude worse. 
 
 \begin{figure}
     \centering
@@ -148,9 +148,9 @@ Figure \ref{fig:sedov} shows the results after $t=0.02$. Compared to Fig. 8 in W
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.5\linewidth]{img/sedov/compare_emag.pdf}
+    \includegraphics[width=0.5\linewidth]{img/sedov/compare_etot.pdf}
     \includegraphics[width=0.49\linewidth]{img/sedov/compare_conv.pdf}
-    \caption{Magnetized Sedov blast: Conservation of energy and convergence of divB error. The left panel shows the normalized total energy  over simulation time }
+    \caption{Magnetized Sedov blast: Conservation of energy and evolution of divB error over time for different resolutions. The left panel shows the normalized total energy. An average run with $250^3$ particles stays within less than $0.3\%$ deviation. The right panel shows how the time-averaged mean divergence error decreases with increasing linear resolution $N$.}
     \label{fig:sedov_metrics}
 \end{figure}
 
@@ -161,27 +161,22 @@ A weak magnetic loop is advected by a constant velocity field. The magnetic fiel
 
 A thin periodic box is initialized with length $L=[2,1,2\frac{\sqrt{6}}{n_x}]$, velocity $v=[2,1,\frac{15}{n_x}]$, uniform pressure $P=1$, uniform density $\rho = 1$ and resolution $[n_x, n_y, n_z] = [120, 60, 30]$. The magnetic field inside the loop of radius $R_0=0.3$ is defined as ${B_0} = \frac{A_0}{r}(y, -x, 0)$ with $A_0=10^{-3}$. Outside the loop the magnetic field is zero. The loop is advected for $t=20$ periods. 
 
-Figure \ref{fig:loop}
+This test is especially susceptible to the velocity noise floor discussed in the beginning of §\ref{sec:numerical_tests}. The flow needed to conduct this test adequately needs to be uniform and almost perfectly smooth, which SPH-EXA with its glass-setup and kernel choice fails to deliver. Thus, the results are hard to compare against those in the reference papers using lattice initial conditions. 
 
-divB control and numerical diffusion of B. 
+Figure \ref{fig:loop_av_comp} compares four different runs, all using the same ARSLR scheme but combined with different AV schemes. It is clear that constant AV performs best at maintaining the loops shape, followed by AVSLR and lastly AVSW. This is a direct consequence of how well each scheme smoothes out the velocity field, specifically sub-resolution shear-noise. 
 
-Slice plot at different iterations. Visible decay. Emag plot. Should dissipate less energy. divB error without normalization. 
+Constant AV with $\alpha = 1$ is constantly tackling any kind of noise based on the approach velocity $\omega_{ab}$ of two particles (see eq. \eqref{eq:av_Pi}. AVSLR subtracts the linear part of the approach velocity fully due to the Balsara-modulator which is designed to specifically detect shear flow and reduce the impact of AV in those cases. Meanwhile AVSW reduces $\alpha$ to $\alpha_{min}$ because switches only activate when there is compression, i.e. $\nabla \cdot \mathbf{v}<0$ \cite{MorrisMonaghan1997}. 
 
-Improve flow quality (less velocity noise): more neighbors, shock detector 
+Remaining velocity noise leads to two effects via its small scale unphysical transverse flow: $E_{mag}$ injection by stretching the field (small scale dynamo via the induction equation \eqref{eq:induction}), and increased dissipation via the signal velocity $v_{\mathrm{sig},B} = |\mathbf{v}_{ab} \times \hat{\mathbf{r}}_{ab}|$ \eqref{eq:vsigB} used for resistivity \eqref{eq:ar_dB}. Two large noise driven terms which deteriorate the structure and violate conservation of magnetic energy in the direction of whichever term dominates. 
 
-So somehow: Best Emag conservation with SLR but slight up and down. But best structure with no SLR and no Switches (constant AV). Constant AV results in less variation/noise in |v| and has less resistive heating (factor 2). So smooth flow retains structure but requires AV and AV dissipates magnetic energy. But with SLR the bending and stretching is kept in energy balance better? Stretch and then dissipate gained energy again. 
+With this knowledge in mind, Figure \ref{fig:loop_ar_comp} uses constant AV to minimize the impact of velocity noise and then compares different AR schemes. Both a05 and SLR maintain the loop equally well, with the latter maybe showing marginally smoother interior and edges. A run using no magnetic dissipation ($\alpha_B=0$) is shown as reference. Figure \ref{fig:loop_metrics} then analyzes resistive heating and magnetic energy evolution of all three configurations with SLR winning out slightly over a05, showing $28\%$ less cumulative heating up to $t=20$.
 
-Velocity field noise. Also FCC melts into glass with available kernels. Fixed ng0 instead of density-proportional, iteratively-summed h gives force-error perturbations also in Wissing. 
+% ---
+% Danger of zero resistivity: Noise never smoothed out. Vel noise generates B noise via stretching or post shock. Something with effective magnetic Prandtl number? Sub-h noise invisible to shock detector (AVSW underdamp). But sub-h B noise triggers gradB\_norm modulator due to enormous gradients. Noise also unresolved structure like shocks. 
+% AV scheme -> sub-resolution shear-noise amplitude -> du\_diss (resistivity)
+% AV dissipates least (14\% vs 28\% vs 127\%) but also removes this injection which would otherwise mask the loss. AVSLR somehow keeps the balance. 
 
-Danger of zero resistivity: Noise never smoothed out. Vel noise generates B noise via stretching or post shock. Something with effective magnetic Prandtl number? Sub-h noise invisible to shock detector (AVSW underdamp). But sub-h B noise triggers gradB\_norm modulator due to enormous gradients. Noise also unresolved structure like shocks. 
-
-Read closer into other papers (Wissing, Price, Hopkins) and what they believe the reason for loop degradation is. Really go in detail here with findings. Interesting and useful for other SPMHD software. 
-
-AV scheme -> sub-resolution shear-noise amplitude -> du\_diss (resistivity)
-
-const AV is only scheme that damps shear-noise. SLR subtracts fully (balsara). Switch goes to alphamin cause no compression. Noise also feeds dynamo (increases Bmag). AV dissipates least (14\% vs 28\% vs 127\%) but also removes this injection which would otherwise mask the loss. AVSLR somehow keeps the balance. 
-
-\todo[inline]{Loop: density gradient plot. Notes on velocity noise, the numerical dynamo from repo folder}
+\todo[inline]{Loop: density gradient plot. Notes on velocity noise, the numerical dynamo from repo folder. divB evolution unnormalized? mby table of |delta v|}
 
 \begin{figure}
     \centering
@@ -190,7 +185,7 @@ const AV is only scheme that damps shear-noise. SLR subtracts fully (balsara). S
     % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}
     \includegraphics[width=\linewidth]{img/MHD-Loop/slice_Bmag_step0_z+0.0000_panels.pdf}
-    \caption{MHD advection loop initial condition (top left) and results after t=20 periods using ARSLR together with 3 different AV schemes: AVSW (top right), AVSLR (bottom left) and constant AV $\alpha=1.0$ (bottom right). Constant AR with $\alpha_B=0.5$ (Wissing form) gives almost identical results compared to ARSLR. Dominant factor is how aggressively AV schemes smooth $|\delta v|$. Velocity noise leads to two effects via its small scale unphysical transverse flow: $E_{mag}$ injection by stretching the field (small scale dynamo), and increased resistivity ($v_{sig,B}=|v_{ab} \times \hat{r}_{ab}|$). Two large noise driven terms which deteriorate the structure and pull $E_{mag}/E_{mag,0}$ away from 1.0, direction depending on which one dominates.}
+    \caption{Results of the MHD advection loop. Density slices of the magnetic field magnitude $|B|$: Initial condition (\textit{top left}) and results after t=20 periods using ARSLR together with three different AV schemes: AVSW (\textit{top right}), AVSLR (\textit{bottom left}) and constant AV $\alpha=1.0$ (\textit{bottom right}). Constant a05 with $\alpha_B=0.5$ (Wissing form) gives almost identical results compared to ARSLR. The dominant factor in how well the loop structure is preserved is how aggressively AV schemes smooth velocity noise $\delta v$ inherent to the flow.}
     \label{fig:loop_av_comp}
 \end{figure}
 
@@ -209,9 +204,9 @@ python sphexa/scripts/plot_slice.py out/9533596_SLR_avswitches/dump.h5 0 out/953
     \centering
     % \includegraphics[width=0.8\linewidth]{img/eMagCompare/compare_eMag_4.pdf}
     \includegraphics[width=\linewidth]{img/MHD-Loop/compare_heating.pdf}
-    \includegraphics[width=0.7\linewidth]{img/MHD-Loop/compare_emag.pdf}
+    \includegraphics[width=0.5\linewidth]{img/MHD-Loop/compare_emag.pdf}
     \caption{MHD advection loop: Comparison of magnetic energy loss through artificial resistivity over time. The a05 baseline is shown in orange, the SLR scheme in blue and a run using no AR ($\alpha_B=0$) in green. Top left panel shows normalized resistive heating rate $\dot u_{diss}$ \eqref{eq:res_heating} over time. Top right panel shows the cumulative resistive heating. The bottom panel then compares the evolution of the normalized magnetic energy $E_{mag}/E_{mag,0}$. The dotted lines represent the evolution if the only change were through dissipation, while the solid lines represent the actual magnetic energy including dynamo-like stretching of field lines which increases the overall magnetic energy.}
-    \label{fig:placeholder}
+    \label{fig:loop_metrics}
 \end{figure}
 
 \subsection{Orszag-Tang vortex}
