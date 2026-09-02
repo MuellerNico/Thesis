@@ -1,0 +1,19 @@
+
+\section{Details of code implementation}
+Software documentation for the SPH-EXA team and future developers of the code. 
+
+Need full velocity Jacobian $J_v$ for induction. Thus, overridden IAD driver. 
+
+branching on curlv allocated? new neighbor lists. gradh correction.
+
+hardcoded divB cleaning variables. $f_{clean}=\sigma_c = 1$. Would need courant limit if raising fclean. evolve psi/ch. Only conservative conjugate pair for equal particle masses. mj/mi resiudal factor. 
+
+divBerr diagnostic unreliable on domains with B=0 regions/spots. 
+
+Using SLR: \texttt{T du\_diss = diss\_op * dot(B\_ab\_raw, B\_ab);} instead of \texttt{norm2(B\_ab)}.
+energy conjugate of dBdiss: dE\_B/dt goes as B\_ab . B'\_ab, not |B'\_ab|2. Identical for the non-reconstructing schemes (B'\_ab == B\_ab). The transverse part of the SLR correction does no work on the field, so charging heat for it would leak energy.
+
+No block time step. self-gravitating MHD untested (timestep control, limit lorentz force movement)
+
+Code \href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}}
+
