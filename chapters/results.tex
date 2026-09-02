@@ -259,16 +259,54 @@ anisotropically sampled (different from wissing)!! compresses the inner glass in
 \end{figure}
 
 \subsection{Magnetized Kelvin-Helmholtz instability}
-Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
-t=1.6 hydro rolls look like the GDSPH panels, not TSPH. Thin arms, no blobbing, no visible surface-tension gaps at the interface. new VE scheme?
-Match growth rate to McNally.txt data. 
+\label{sec:kh}
+
+% Instability physics: magnetic tension suppresses/reshapes KH roll-up. Verifies the code reproduces the field-strength-dependent growth-rate modification.
+% t=1.6 hydro rolls look like the GDSPH panels, not TSPH. Thin arms, no blobbing, no visible surface-tension gaps at the interface. new VE scheme?
+% Match growth rate to McNally.txt data. 
+
+The Kelvin-Helmholtz (KH) instability grows at the interface of two fluids in shear flow and is the standard test for how well a code mixes across a contact discontinuity. With a magnetic field applied parallel to the flow, magnetic tension acts against the deformation of the interface and reduces the growth of the mode. This test therefore probes two things at once: whether our implementation mixes at all, which is a known weak point of traditional SPH, and whether it reproduces the stabilizing effect of the field. It is also the only test in this suite for which a well-posed reference solution of the mode amplitude exists.
+
+We follow the setup of McNally et al. (2012) \cite{McNally2012}, extended to 3D as in Wissing \& Shen (2020) \cite{WissingShen2020}. A periodic box of $1 \times 1 \times 0.0625$ is filled with a dense inner stream $\rho_{in} = 2$ for $0.25 < y < 0.75$ and a light outer stream $\rho_{ext} = 1$, at uniform pressure $P = 5/2$ with $\gamma = 5/3$. The inner stream moves at $v_x = -0.5$ and the outer at $v_x = +0.5$, joined by the exponential ramp of \cite{McNally2012} with smoothing scale $l_s = 0.025$, which makes the linear problem well-posed by removing the sharp velocity discontinuity. The instability is seeded by the single mode $v_y = 0.01 \sin(4 \pi x)$, and a uniform field $B = [-0.1, 0, 0]$ is applied along the flow. We use $[n_x, n_y, n_z] \approx [291, 291, 18]$ ($1.54 \times 10^6$ particles) and $\texttt{ng0} = 100$ neighbors, and run to $t = 3.2$. The same run was repeated with the magnetic field disabled to separate numerical from magnetic effects.
+
+Our setup differs from the reference in a few points. The density jump is sharp in both, but we sample it with a relaxed glass rather than a close-packed lattice, and our slab is $18$ particle spacings thick instead of $12$. Wissing \& Shen use the Wendland C4 kernel with $200$ neighbors, a decaying artificial viscosity switch ($\alpha = 4 \rightarrow 0.1$, $\beta = 2$) with constant $\alpha_B = 0.5$, and, in one of their four panels, an explicit thermal diffusion term with $C = 0.03$; we use the sinc6 kernel and the default schemes of §\ref{sec:numerical_tests} with no diffusion term. Finally, both our velocity and our magnetic field carry the opposite sign to theirs, which makes our configuration the mirror image in $x$ of theirs: the physics is unchanged, but the rolls wind the other way, which should be kept in mind when comparing the figures side by side.
+
+Figure \ref{fig:kh_density} shows the density in the $z=0$ plane at $t = 1.6$, $2.6$ and $3.2$. The rolls are well developed and the arms stay thin and connected down to late times, with no blobbing and no gaps opening along the contact discontinuity. Compared to Fig. 9 in \cite{WissingShen2020}, our result resembles their GDSPH panels rather than their TSPH panel, which suffers from a numerical surface tension that fragments the arms and visibly slows the mode. A plausible reason is the generalized volume element formulation used in SPH-EXA (§\ref{sec:iad}), which targets the same partition-of-unity error at density discontinuities that GDSPH addresses through the geometric density average, although we have not isolated this experimentally. The stretching and uncoiling of the vortex by the field reported in \cite{WissingShen2020} is also visible in our panels, most clearly at $t=3.2$ where the inner spiral is drawn out along the field direction.
+
+For a quantitative comparison we use the mode amplitude $M$ of \cite{McNally2012},
+\begin{equation}
+    M = 2 \frac{\sqrt{s^2 + c^2}}{d}, \quad
+    s = \sum_i V_i \, v_{y,i} \sin(4 \pi x_i) \, \omega_i, \quad
+    c = \sum_i V_i \, v_{y,i} \cos(4 \pi x_i) \, \omega_i, \quad
+    d = \sum_i V_i \, \omega_i,
+    \label{eq:kh_amplitude}
+\end{equation}
+with the particle volume element $V_i$ of §\ref{sec:iad} and the weight $\omega_i = \exp(-4\pi |y_i - 0.25|)$ in the lower half of the box and $\exp(-4\pi|y_i - 0.75|)$ in the upper half, which isolates the seeded mode at the two interfaces. This is computed on the fly during the run and written to the constants file.
+
+Figure \ref{fig:kh_growth} compares $M$ against the reference solution of \cite{McNally2012}, which is a converged grid result for the purely hydrodynamic problem. The logarithmic axis is chosen because the linear phase grows exponentially and thus appears as a straight line, so a growth rate that is too low is immediately visible. Our hydrodynamic run tracks the reference closely: it reproduces the initial dip and the small oscillations before $t = 0.5$, which is where the seeded mode reorganizes and where an over-dissipative scheme would simply lose the signal, and it stays within $8\%$ (relative $L_1$ over the tabulated range) up to $t = 1.5$, ending about $10\%$ below the reference at the end of the linear phase. We read the remaining deficit as the numerical dissipation of our scheme at this resolution, in line with the velocity noise floor discussed at the beginning of §\ref{sec:numerical_tests}.
+
+The magnetized run separates from the hydrodynamic one from $t \approx 0.7$ onwards, i.e. as soon as the interface deforms enough for magnetic tension to act, and reaches $22\%$ below the reference at $t = 1.5$. Saturation is both earlier and weaker, $M_{max} = 0.16$ at $t \approx 2.0$ against $M_{max} = 0.21$ at $t \approx 2.3$ without the field. Since both runs are otherwise identical, the difference between the two curves is the magnetic effect alone, and it has the expected sign and a plausible size: with $B = 0.1$ the Alfvén speed is well below the shear velocity, so the mode is slowed rather than suppressed. After saturation, $M$ falls steeply and passes close to zero around $t = 2.8$ as the vortex is disrupted; the amplitude of a single mode is no longer a meaningful diagnostic in this regime and we do not interpret it further.
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{img/KH/slice_rho_step3_z+0.0000.png}
-    \caption{REPLACE Kelvin-Helmholtz Instability. Note: direction switched compared to Robert}
-    \label{fig:placeholder}
+    \includegraphics[width=\linewidth]{img/KH/slice_rho_step1_z+0.0000_panels.pdf}
+    \caption{Magnetized Kelvin-Helmholtz instability: density slices at $z=0$ and $t=1.6$, $2.6$ and $3.2$, using $[n_x, n_y, n_z] \approx [291, 291, 18]$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
+    \label{fig:kh_density}
 \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{img/KH/compare_kh.pdf}
+    \caption{Kelvin-Helmholtz mode amplitude $M$ \eqref{eq:kh_amplitude} over time, on a logarithmic scale. The converged hydrodynamic reference solution of McNally et al. (2012) \cite{McNally2012} is shown in black and ends at $t=1.5$. Our hydrodynamic run follows it closely, including the oscillations of the seeded mode before $t=0.5$. The magnetized run ($B = [-0.1,0,0]$) grows more slowly from $t \approx 0.7$ onwards and saturates earlier and at a lower amplitude, which is the expected effect of magnetic tension acting against the deformation of the interface.}
+    \label{fig:kh_growth}
+\end{figure}
+
+\begin{verbatim}
+python sphexa/scripts/plot_constants_compare.py kh out/12507482_KH_hydro_290c
+    out/12518185_KH_290c --labels hydro,MHD --clean --tmax 2.4
+\end{verbatim}
+
+\todo[inline]{KH: field strength scan (beta series) to show the growth rate modification is monotonic in B? divB error and resistive heating for this test are not discussed yet.}
 
 \subsection{Subsonic MHD Turbulence}
 \label{sec:mhd_turb}
