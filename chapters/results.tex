@@ -199,8 +199,10 @@ python sphexa/scripts/plot_slice.py out/9533596_SLR_avswitches/dump.h5 0 out/953
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{img/eMagCompare/compare_eMag_4.pdf}
-    \caption{Loss of magnetic energy in MHD advection loop test. TODO: Replace with resistive heating}
+    % \includegraphics[width=0.8\linewidth]{img/eMagCompare/compare_eMag_4.pdf}
+    \includegraphics[width=\linewidth]{img/MHD-Loop/compare_heating.pdf}
+    \includegraphics[width=0.7\linewidth]{img/MHD-Loop/compare_emag.pdf}
+    \caption{MHD advection loop: Comparison of magnetic energy loss through artificial resistivity over time. The a05 baseline is shown in orange, the SLR scheme in blue and a run using no AR ($\alpha_B=0$) in green. Top left panel shows normalized resistive heating rate $\dot u_{diss}$ \eqref{eq:res_heating} over time. Top right panel shows the cumulative resistive heating. The bottom panel then compares the evolution of the normalized magnetic energy $E_{mag}/E_{mag,0}$. The dotted lines represent the evolution if the only change were through dissipation, while the solid lines represent the actual magnetic energy including dynamo-like stretching of field lines which increases the overall magnetic energy.}
     \label{fig:placeholder}
 \end{figure}
 
@@ -224,6 +226,13 @@ Robustness in multi-shock regime. Stability and divB cleaning when shocks collid
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
     \caption{Orszag-Tang: Pressure slices at t=0.5 along y=0.3125 and y=0.4277 in z=0 plane for different numerical resolutions. To be compared with Price 2018}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{img/OT/compare_divb.pdf}
+    \caption{OT: divB error. mby only show 3rd panel}
     \label{fig:placeholder}
 \end{figure}
 
