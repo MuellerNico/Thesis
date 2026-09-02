@@ -195,7 +195,7 @@ The normalized divergence error
     \varepsilon_{\mathrm{divB}} = \frac{h\,|\nabla \cdot \mathbf{B}|}{|\mathbf{B}|}
     \label{eq:divb_error}
 \end{equation}
-provides a dimensionless diagnostic; a well-controlled simulation maintains mean $\varepsilon_\mathrm{divB} \lesssim 10^{-2}$ \cite{WissingShen2020, Price2018}.
+provides a dimensionless diagnostic; a well-controlled simulation maintains mean $\varepsilon_{divB} \lesssim 10^{-2}$ \cite{WissingShen2020, Price2018}.
 
 
 \subsection{SPMHD: Discretization in SPH-EXA}
@@ -216,16 +216,16 @@ This represents a Phantom-style $\rho^2$ symmetrization (each particle uses its 
 
 \subsubsection*{Induction equation}
 
-Rather than discretizing \eqref{eq:induction} as a direct antisymmetric SPH sum \cite{WissingShen2020}, SPH-EXA first computes the full velocity-gradient tensor (Jacobian)
+Rather than discretizing \eqref{eq:induction} as a direct antisymmetric SPH sum \cite{WissingShen2020}, SPH-EXA first computes the full velocity-gradient tensor (Jacobian) \todo{remove vel jacobian equation. irrelevant}
 \begin{equation}
     \frac{\partial v^i}{\partial x^j}\bigg|_a = \frac{K}{h_a^3}\frac{1}{k_a \Omega_a} \sum_b V_b \,(v^i_b - v^i_a)\, \mathcal{A}_{j,ab}(h_a)
-    \label{eq:vel_jacobian}
+    \label{eq:vel_jacobian} 
 \end{equation}
 via the IAD gradient, then evaluates the analytic identity \eqref{eq:induction} component by component:
 \begin{equation}
     \frac{dB^x_a}{dt} = -B^x_a \left(\frac{\partial v^y}{\partial y} + \frac{\partial v^z}{\partial z}\right)_{\!a} + B^y_a \frac{\partial v^x}{\partial y}\bigg|_a + B^z_a \frac{\partial v^x}{\partial z}\bigg|_a\,,
     \label{eq:induction_code}
-\end{equation}
+\end{equation} 
 and analogously for the other components. This yields the same continuum operator as the direct sum but with a more accurate (IAD-based) gradient estimator.
 
 
@@ -320,6 +320,10 @@ where we have written $\psi_a = (\psi/c_h)_a \cdot c_{h,a}$ to recover $\psi$ fr
 
 Physical discontinuities in the magnetic field---rotational discontinuities, tangential discontinuities (current sheets), and magnetic components of MHD shocks---cannot be captured by finite particles. Without dissipation, energy trapped in sub-resolution gradients produces high-frequency oscillations that corrupt the solution, analogous to the velocity case motivating AV. Artificial resistivity (AR) provides controlled, resolution-scale magnetic diffusion spreading sharp gradients over a few smoothing lengths \cite{Price2018, WissingShen2020}.
 
+\begin{equation}
+    \dot{u}_{diss} = todo
+    \label{eq:res_heating}
+\end{equation}
 
 \subsubsection*{The dissipation terms}
 
@@ -334,7 +338,7 @@ where $\mathbf{B}_{ab} = \mathbf{B}_a - \mathbf{B}_b$ and $\eta = \tfrac{1}{2}\a
     \label{eq:ar_du}
 \end{equation}
 
-In SPH-EXA, the kernel-gradient terms $\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab} / \rho^2$ are replaced by IAD-based forms $\hat{\mathbf{r}}_{ab} \cdot \boldsymbol{\mathcal{A}}_{ab} / \rho^2$, and a conjugate-pair structure (using both particles' kernels) is employed, following Phantom convention \cite{Price2018}.
+In SPH-EXA, the kernel-gradient terms $\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab} / \rho^2$ are replaced by IAD-based forms $\hat{\mathbf{r}}_{ab} \cdot \boldsymbol{\mathcal{A}}_{ab} / \rho^2$, and a conjugate-pair structure (using both particles' kernels) is employed, following Phantom convention \cite{Price2018}. \todo{write actual AR equation instead of brookshaw above}
 
 
 \subsubsection*{Signal velocity}
