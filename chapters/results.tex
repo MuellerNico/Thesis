@@ -14,7 +14,7 @@ Whenever we refer to a resolution (e.g. $n_x = 250$) of a simulation using glass
 The test setups follow those also used in Wissing \& Shen (2020) \cite{WissingShen2020} which in turn are based on Price et al. (2018) \cite{Price2018}. Differences are always made explicit. 
 
 \paragraph{Default code parameters}
-If not explicitly written otherwise, the test setups use the following default parameters. We use the sinc6 smoothing kernel with \texttt{ng0=150} desired and \texttt{ngmax=150} maximum neighbors per particle. AV uses AVSLR with constant $\alpha = 1.0$ (see §\ref{sec:slr}). And so does AR with ARSLR and $\alpha_B=1.0$. Magnetic constant $\mu_0 = 1$. We use an adiabatic EOS (equation of state) with $\gamma = 5/3$. Artificial conductivity (AC) is disabled as described in §\ref{sec:ac}. \todo[inline]{cleaning terms, other dissipation?}
+If not explicitly written otherwise, the test setups use the following default parameters. We use the sinc6 smoothing kernel with \texttt{ng0=150} desired and \texttt{ngmax=200} maximum neighbors per particle. AV uses AVSLR with constant $\alpha = 1.0$ (see §\ref{sec:slr}). And so does AR with ARSLR and $\alpha_B=1.0$. Magnetic constant $\mu_0 = 1$. We use an adiabatic EOS (equation of state) with $\gamma = 5/3$. Artificial conductivity (AC) is disabled as described in §\ref{sec:ac}. \todo[inline]{cleaning terms, other dissipation?}
 
 \paragraph{Naming of AR schemes}
 For simplicity we label the baseline scheme, using constant $\alpha_B = 0.5$, in our figures as \texttt{a05}. The schemes employing reconstruction as introduced in §\ref{sec:slr} are labelled \texttt{SLR}, \texttt{SLRB} and \texttt{SLRB2} respectively. All AR schemes use the self-switching $v_{sig,B}$ as defined in \eqref{eq:vsigB}.
