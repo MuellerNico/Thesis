@@ -363,6 +363,7 @@ SPH-EXA implements several strategies for setting the dimensionless coefficient 
     \label{eq:tp_switch}
 \end{equation}
 where $\|\nabla \mathbf{B}\|$ is the Frobenius norm of the magnetic-field gradient tensor computed via IAD. This is large ($\sim 1$) near discontinuities and small in smooth regions, providing localized dissipation. No source/decay ODE is used; the switch responds instantaneously.
+\todo[inline]{did implement but discarded (already by other papers)}
 
 \paragraph{SLR schemes.} In the slope-limited reconstruction approach (\S\ref{sec:slr}), $\alpha_B$ is set to a constant value of 1, and dissipation is instead controlled by subtracting the resolved linear gradient from $\mathbf{B}_{ab}$ before it enters the dissipation operator. This provides a more principled scale separation than a heuristic switch. The SLR variants (SLR, SLRB, SLRB2) additionally modulate the dissipation via the Lij floor mechanism described in \S\ref{sec:slr}.
 
