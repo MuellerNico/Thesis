@@ -268,7 +268,7 @@ anisotropically sampled (different from wissing)!! compresses the inner glass in
 % t=1.6 hydro rolls look like the GDSPH panels, not TSPH. Thin arms, no blobbing, no visible surface-tension gaps at the interface. new VE scheme?
 % Match growth rate to McNally.txt data. 
 
-The Kelvin-Helmholtz (KH) instability grows at the interface of two fluids in shear flow and is the standard test for how well a code mixes across a contact discontinuity. With a magnetic field applied parallel to the flow, magnetic tension acts against the deformation of the interface and reduces the growth of the mode. This test therefore probes two things at once: whether our implementation mixes at all, which is a known weak point of traditional SPH, and whether it reproduces the stabilizing effect of the field. It is also the only test in this suite for which a well-posed reference solution of the mode amplitude exists.
+The Kelvin-Helmholtz (KH) instability grows at the interface of two fluids in shear flow and is the standard test for how well a code mixes across a contact discontinuity. With a magnetic field applied parallel to the flow, magnetic tension acts against the deformation of the interface and reduces the growth of the mode. This test therefore probes two things at once: whether our implementation mixes at all, which is a known weak point of traditional SPH, and whether it reproduces the stabilizing effect of the field.
 
 We follow the setup of McNally et al. (2012) \cite{McNally2012}, extended to 3D as in Wissing \& Shen (2020) \cite{WissingShen2020}. A periodic box of $1 \times 1 \times 0.0625$ is filled with a dense inner stream $\rho_{in} = 2$ for $0.25 < y < 0.75$ and a light outer stream $\rho_{ext} = 1$, at uniform pressure $P = 5/2$ with $\gamma = 5/3$. The inner stream moves at $v_x = -0.5$ and the outer at $v_x = +0.5$, joined by the exponential ramp of \cite{McNally2012} with smoothing scale $l_s = 0.025$, which makes the linear problem well-posed by removing the sharp velocity discontinuity. The instability is seeded by the single mode $v_y = 0.01 \sin(4 \pi x)$, and a uniform field $B = [-0.1, 0, 0]$ is applied along the flow. We use $[n_x, n_y, n_z] \approx [291, 291, 18]$ ($1.54 \times 10^6$ particles) and $\texttt{ng0} = 100$ neighbors, and run to $t = 3.2$. The same run was repeated with the magnetic field disabled to separate numerical from magnetic effects.
 
@@ -293,7 +293,7 @@ The magnetized run separates from the hydrodynamic one from $t \approx 0.7$ onwa
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{img/KH/slice_rho_step1_z+0.0000_panels.pdf}
-    \caption{Magnetized Kelvin-Helmholtz instability: density slices at $z=0$ and $t=1.6$, $2.6$ and $3.2$, using $[n_x, n_y, n_z] \approx [291, 291, 18]$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
+    \caption{Magnetized Kelvin-Helmholtz instability: density slices at $z=0$ and $t=1.6$, $2.6$ and $3.2$, using $[n_x, n_y, n_z] \approx [320, 320, 20]$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
     \label{fig:kh_density}
 \end{figure}
 
