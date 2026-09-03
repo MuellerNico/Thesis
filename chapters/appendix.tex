@@ -1,11 +1,319 @@
-\section{Appendix}
-\subsection{Usage instructions}
+% Old stub, kept for reference:
+%
+% \section{Appendix}
+% \subsection{Usage instructions}
+%
+% parameters, CLI flags, test case flags, tests, propagator, input, output, plotting (plot\_slice documentation), diagnostic dashboard, profile dashboard, cluster scripts, etc.
+%
+% careful with divb diagnostic in B=0 areas (e.g. Loop)
 
-parameters, CLI flags, test case flags, tests, propagator, input, output, plotting (plot\_slice documentation), diagnostic dashboard, profile dashboard, cluster scripts, etc.
+\section{Usage instructions}
 
-careful with divb diagnostic in B=0 areas (e.g. Loop)
+This appendix is a practical guide for running the MHD part of SPH-EXA. It assumes
+familiarity with the hydrodynamics side of the code: building, launching, glass blocks,
+HDF5 dumps and restarts all work exactly as before. Only what is specific to MHD is
+described here. The code is available in the
+\href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}}.
 
-\subsection{Details of code implementation}
+The MHD extension adds one propagator (\texttt{magneto-ve}), a set of magnetized test
+cases, a handful of command-line flags, and a group of particle fields that are written
+to the HDF5 dumps under a \texttt{magneto::} prefix. Nothing else in the workflow changes.
+
+\subsection{Running a simulation}
+
+The same executable is used as for pure hydrodynamics
+(\texttt{sphexa} on CPU, \texttt{sphexa-cuda} on GPU). A minimal run:
+
+\begin{verbatim}
+sphexa --init orszag-tang --glass 50c.h5 --prop magneto-ve \
+       -n 200 -s 1.0 -w 0.1 -o dump.h5
+\end{verbatim}
+
+Two things must be consistent:
+
+\begin{enumerate}
+    \item \textbf{The propagator must be an MHD propagator.} Use \texttt{--prop magneto-ve}
+          for all test cases, or \texttt{--prop magneto-turb-ve} for driven turbulence.
+          With any other propagator the magnetic fields are never allocated and the run is
+          plain hydrodynamics.
+    \item \textbf{The initial conditions must set a magnetic field.} Either one of the
+          magnetized test cases below, or a restart file / initial-condition file that
+          contains the magnetic fields. Combining \texttt{--prop magneto-ve} with a purely
+          hydrodynamic initializer leaves $\mathbf{B}$ uninitialized.
+\end{enumerate}
+
+The code works in units with $\mu_0 = 1$, so the magnetic pressure is $B^2/2$ and the
+Alfv\'en speed is $v_A = |\mathbf{B}|/\sqrt{\rho}$. All test-case constants are given in
+these units.
+
+\subsection{Test cases}
+
+The magnetized test cases are selected with \texttt{--init}. Most of them require a glass
+block (\texttt{--glass}); the two shock-type tests can alternatively be built on a regular
+lattice by omitting \texttt{--glass}. All boxes are fully periodic. The quasi-2D tests use
+a thin slab in $z$ whose thickness is set automatically from the resolution.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{7.4cm}@{}}
+\toprule
+\texttt{--init} & glass & description \\
+\midrule
+\texttt{alfven-wave}              & required & Circularly polarized Alfv\'en wave travelling obliquely through the box. Standard convergence test. Box $[0,3] \times [0,1.5]^2$. \\
+\texttt{brio-wu}                  & optional & MHD shock tube, thin box $[-2,2]$ in $x$. Without \texttt{--glass} a regular lattice is used. \\
+\texttt{mhd-loop}                 & optional & Advection of a weak magnetic field loop through a $2{:}1$ box; measures numerical dissipation. Without \texttt{--glass} an FCC (or simple-cubic) lattice is used. \\
+\texttt{orszag-tang}              & required & Orszag--Tang vortex, unit box, thin in $z$. Standard 2D MHD benchmark. \\
+\texttt{mhd-rotor}                & required & Rotating dense disk in a uniform field, box $[-0.5,0.5]^2$, thin in $z$. \\
+\texttt{sedov-magneto}            & required & Sedov blast wave with a uniform background field along $(\hat{x}+\hat{z})/\sqrt{2}$. \\
+\texttt{kelvin-helmholtz-magneto} & required & Kelvin--Helmholtz instability with a uniform field along $x$. \\
+\texttt{turbulence-magneto}       & required & Driven supersonic turbulence with a uniform mean field along $z$. Requires \texttt{--prop magneto-turb-ve}. \\
+\bottomrule
+\end{tabular}
+\caption{Magnetized test cases.}
+\end{table}
+
+The resolution flag \texttt{-n} keeps its usual meaning of the effective number of
+particles per box length for all glass-based cases and for the \texttt{mhd-loop} lattice
+variant. For the \texttt{brio-wu} lattice variant it is instead the number of lattice
+planes along $x$ in the low-density half of the tube, so that the setup of
+Wissing \& Shen (2020) is reproduced exactly.
+
+\subsection{Command-line options}
+
+\texttt{sphexa --help} lists all flags. The MHD-relevant ones are:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{7.0cm}@{}}
+\toprule
+flag & default & meaning \\
+\midrule
+\texttt{--prop} & \texttt{ve} & \texttt{magneto-ve} for MHD, \texttt{magneto-turb-ve} for driven MHD turbulence. \\
+\texttt{--resistivity} & \texttt{SLR} & Artificial resistivity scheme, see below. \\
+\texttt{--arfloor NUM} & \texttt{1.0} & Floor $F$ in the modulated resistivity clamp $L_{ij} = \max(F, \text{modulator})$. Only used by \texttt{SLRB}/\texttt{SLRB2}; $F=1$ disables the modulation. \\
+\texttt{--conductivity NUM} & \texttt{0} & Artificial conductivity coefficient $\alpha_u$. \texttt{0} disables the heat-conduction term. \\
+\texttt{--no-slr} & off & Disables slope-limited reconstruction in the \emph{artificial viscosity}. Independent of \texttt{--resistivity}. \\
+\texttt{--avswitches} & off & Enables the artificial-viscosity switches. \\
+\bottomrule
+\end{tabular}
+\caption{MHD-relevant command-line flags.}
+\end{table}
+
+The \texttt{--resistivity} flag accepts:
+
+\begin{itemize}
+    \item \texttt{switch} --- the Tricco \& Price (2013) switch.
+    \item \texttt{SLR} (default) --- slope-limited reconstruction of $\mathbf{B}$ across the
+          particle pair.
+    \item \texttt{SLRB} / \texttt{SLRB2} --- as \texttt{SLR}, with an additional Balsara-like
+          modulation of the dissipation amplitude (power 1 and 2 respectively), tunable with
+          \texttt{--arfloor}.
+    \item a number, e.g. \texttt{--resistivity 0.5} --- constant $\alpha_B$.
+\end{itemize}
+
+Note the naming collision: \texttt{--no-slr} switches off slope-limited reconstruction in
+the \emph{viscous} dissipation of the momentum and energy equations, whereas
+\texttt{--resistivity SLR} selects the reconstruction-based scheme for the \emph{magnetic}
+dissipation. The two are set independently.
+
+\subsection{Changing test-case parameters}
+
+Every test case defines its physical constants (densities, pressures, field strengths,
+$\gamma$, $K_\mathrm{cour}$, $n_{g0}$, \dots) as named defaults. They are overridden by
+passing an HDF5 settings file after a colon:
+
+\begin{verbatim}
+sphexa --init mhd-loop:settings.h5 --prop magneto-ve ...
+\end{verbatim}
+
+The file contains the overridden values as file attributes. It can be created with
+\texttt{scripts/set\_parms.py}, or inline in a job script:
+
+\begin{verbatim}
+python - settings.h5 <<'EOF'
+import sys, h5py
+with h5py.File(sys.argv[1], "w") as f:
+    f.attrs["rhoIn"] = 2.0
+    f.attrs["Kcour"] = 0.1
+EOF
+\end{verbatim}
+
+At startup the code prints each attribute it read, and warns about names it does not
+recognize --- a useful check against typos. The most relevant magnetic constants are:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+test case & attribute & default \\
+\midrule
+\texttt{alfven-wave}              & \texttt{noiseAmp} (white-noise amplitude on $\mathbf{B}$) & \texttt{0} \\
+\texttt{brio-wu}                  & \texttt{Bx}, \texttt{ByL}, \texttt{ByR} & \texttt{0.75}, \texttt{1}, \texttt{-1} \\
+\texttt{mhd-loop}                 & \texttt{A0} (loop amplitude), \texttt{R0} (radius) & \texttt{1e-3}, \texttt{0.3} \\
+\texttt{mhd-loop}                 & \texttt{rhoIn}/\texttt{rhoOut} (density-jump variant) & \texttt{1}/\texttt{1} \\
+\texttt{mhd-loop}                 & \texttt{fccLattice} (1 = FCC, 0 = simple cubic) & \texttt{1} \\
+\texttt{orszag-tang}              & \texttt{B0} & $1/\sqrt{4\pi}$ \\
+\texttt{mhd-rotor}                & \texttt{Bx} & $5/\sqrt{4\pi}$ \\
+\texttt{sedov-magneto}            & \texttt{Bmag} & \texttt{10} \\
+\texttt{turbulence-magneto}       & \texttt{Bmag} & \texttt{0.15} \\
+\bottomrule
+\end{tabular}
+\caption{Magnetic parameters of the test cases, overridable through a settings file.}
+\end{table}
+
+Setting the field strength to zero is a convenient way to obtain a directly comparable
+hydrodynamic reference run of the same setup.
+
+\subsection{Output and restart}
+
+The magnetic fields are written into the same HDF5 dumps as the hydrodynamic ones, under
+the prefix \texttt{magneto::} (e.g.\ \texttt{magneto::Bx}). On the command line the fields
+are named \emph{without} the prefix:
+
+\begin{verbatim}
+-f x,y,z,h,m,rho,vx,vy,vz,Bx,By,Bz,divB
+\end{verbatim}
+
+If \texttt{-f} is omitted, all conserved fields are written and the dump is restartable.
+The conserved magnetic fields are \texttt{Bx}, \texttt{By}, \texttt{Bz}, their time
+derivatives \texttt{dBx}, \texttt{dBy}, \texttt{dBz} and previous-step values
+\texttt{dBx\_m1}, \texttt{dBy\_m1}, \texttt{dBz\_m1}, plus the divergence-cleaning
+variables \texttt{psi\_ch}, \texttt{d\_psi\_ch}, \texttt{d\_psi\_ch\_m1}. \textbf{If you
+pass a custom \texttt{-f} list and want to restart from the dump, all of these must be
+included.} Restarting works as in the hydrodynamic case:
+
+\begin{verbatim}
+sphexa --init dump.h5:3 --prop magneto-ve -s 500 -o restart.h5
+\end{verbatim}
+
+Useful non-conserved (diagnostic) fields are \texttt{divB} (divergence of $\mathbf{B}$),
+\texttt{curlB\_x}, \texttt{curlB\_y}, \texttt{curlB\_z} (current density up to $\mu_0$),
+\texttt{gradB\_norm} (norm of $\nabla \mathbf{B}$) and \texttt{alpha\_B} (the local
+artificial-resistivity coefficient). They cost memory and I/O bandwidth, so only request
+them when needed.
+
+\subsection{Scalar diagnostics: \texttt{constants.txt}}
+
+As in hydrodynamics, one line per iteration is appended to \texttt{constants.txt} next to
+the output file. MHD runs add four columns. In order:
+
+\begin{verbatim}
+iteration  ttot  minDt  etot  ecin  eint  egrav  linmom  angmom
+           eMag  meanDivBError  maxDivBError  resHeating  [test-specific]
+\end{verbatim}
+
+\texttt{eMag} is the total magnetic energy and is included in \texttt{etot}, so energy
+conservation can be monitored directly. The two divergence columns report the
+dimensionless error $h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$, averaged over all particles
+and as a global maximum. \texttt{resHeating} is the instantaneous total heating rate
+produced by the artificial resistivity. The trailing column is present only for the test
+cases that define one (RMS Mach number for turbulence, mode amplitude for
+Kelvin--Helmholtz).
+
+\subsection{Plotting}
+
+Two scripts in \texttt{scripts/} cover most needs. Both are plain Python
+(\texttt{numpy}, \texttt{h5py}, \texttt{matplotlib}) and are usually called at the end of
+a job script.
+
+\subsubsection*{\texttt{plot\_constants.py} --- diagnostics dashboard}
+
+\begin{verbatim}
+python scripts/plot_constants.py out/123456/constants.txt
+\end{verbatim}
+
+Produces \texttt{constants\_diagnostics.pdf} next to the input file: energy components,
+relative total-energy drift, linear and angular momentum, magnetic energy normalized to
+its initial value, the mean and maximum $\nabla\cdot\mathbf{B}$ error, the time step, and
+the resistive heating rate together with its cumulative integral. The magnetic-energy
+panel also shows the dissipation-only expectation
+$1 - \int \dot{E}_\mathrm{res}\,\mathrm{d}t / E_\mathrm{mag,0}$; the gap between the two
+curves is magnetic energy created by the ideal induction term. Use
+\texttt{--kind kh} to label the trailing column of a Kelvin--Helmholtz run correctly
+(default \texttt{turb}).
+
+\subsubsection*{\texttt{plot\_slice.py} --- 2D slices}
+
+Renders an SPH-interpolated slice of any field through the box:
+
+\begin{verbatim}
+python scripts/plot_slice.py dump.h5 -i                 # metadata + field list
+python scripts/plot_slice.py dump.h5 --field rho        # final step
+python scripts/plot_slice.py dump.h5 5 --field Bmag -l  # step 5, log scale
+python scripts/plot_slice.py dump.h5 --all --field Bmag -j 8
+\end{verbatim}
+
+A file may be followed by a step number (negative counts from the end, absent means the
+last step). Several files are tiled into a single figure sharing one color scale, which is
+the standard way to compare resolutions or dissipation schemes:
+
+\begin{verbatim}
+python scripts/plot_slice.py a.h5 b.h5 c.h5 --labels 128 256 512 --clean
+\end{verbatim}
+
+The most useful options are \texttt{--field}, \texttt{--axis}/\texttt{--pos} (slice plane;
+by default the box midplane normal to $z$), \texttt{-r} (grid resolution),
+\texttt{--cmap}, \texttt{-l} (log scale), \texttt{--vmin}/\texttt{--vmax},
+\texttt{--fieldlines} (streamplot overlay, using $\mathbf{B}$ by default),
+\texttt{--smooth} (widen the rendering kernel for a smoother picture),
+\texttt{--scatter} (skip the interpolation, fast preview), \texttt{-j} (parallel workers,
+pass \texttt{"\$SLURM\_CPUS\_PER\_TASK"} in a job script) and \texttt{--clean} (PDF output
+without title for use as a figure). \texttt{-h} lists the rest.
+
+Besides the raw datasets, the script understands derived fields computed on the fly:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+name & quantity \\
+\midrule
+\texttt{Bmag}, \texttt{vmag}       & $|\mathbf{B}|$, $|\mathbf{v}|$ \\
+\texttt{Emag}, \texttt{Pmag}       & magnetic energy density, magnetic pressure \\
+\texttt{KE}                        & kinetic energy density \\
+\texttt{curlBmag}                  & $|\nabla \times \mathbf{B}|$ \\
+\texttt{divBerr}, \texttt{log\_divBerr} & $h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$ (and its $\log_{10}$) \\
+\texttt{Bphi}, \texttt{Bperp}, \texttt{Bperp\_rel} & loop-frame decomposition for the \texttt{mhd-loop} test \\
+\bottomrule
+\end{tabular}
+\caption{Derived fields available to \texttt{plot\_slice.py}. \texttt{-i} lists those
+resolvable from a given dump.}
+\end{table}
+
+Both scripts only need the dump and are independent of the simulation build, so they can
+be run on a login node or locally.
+
+\subsection{Caveats}
+
+\begin{itemize}
+    \item \textbf{The $\nabla\cdot\mathbf{B}$ diagnostic is unreliable where the field is
+          weak.} The reported quantity is normalized by $|\mathbf{B}|$, so in regions with
+          $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large.
+          Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not.
+          This affects tests with field-free regions, in particular \texttt{mhd-loop}
+          (everything outside the loop) and any field null. Compare the \emph{mean} column
+          across runs of the same setup rather than reading the maximum as an absolute
+          quality measure.
+    \item \textbf{Divergence-cleaning parameters are fixed} at $f_\mathrm{clean} =
+          \sigma_c = 1$ and are not exposed on the command line. A more aggressive
+          cleaning speed would require an additional Courant limit on the time step.
+    \item \textbf{No block time stepping.} There is no MHD analogue of the \texttt{ve-bdt}
+          propagator; all particles are advanced on a global time step.
+    \item \textbf{The time step does not include a limit from the artificial resistivity.}
+          With large $\alpha_B$ (e.g.\ \texttt{--resistivity 1}) at high resolution, reduce
+          \texttt{Kcour} if the magnetic energy behaves erratically.
+    \item \textbf{Self-gravitating MHD is untested.} Nothing prevents combining
+          \texttt{--prop magneto-ve} with self-gravity, but neither the time-step control
+          nor the Lorentz force have been validated in that regime.
+    \item \textbf{Artificial conductivity assumes an ideal-gas equation of state.} Do not
+          combine \texttt{--conductivity} with the isothermal or polytropic EOS.
+    \item \textbf{Exact energy conservation of the cleaning terms assumes equal particle
+          masses}, which all built-in test cases satisfy.
+\end{itemize}
+
+\newpage
+
+\section{Details of code implementation}
 Software documentation for the SPH-EXA team and future developers of the code. 
 
 Need full velocity Jacobian $J_v$ for induction. Thus, overridden IAD driver. 
@@ -22,4 +330,3 @@ energy conjugate of dBdiss: dE\_B/dt goes as B\_ab . B'\_ab, not |B'\_ab|2. Iden
 No block time step. self-gravitating MHD untested (timestep control, limit lorentz force movement)
 
 Code \href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}}
-

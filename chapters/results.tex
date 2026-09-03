@@ -257,19 +257,23 @@ Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared wit
 % python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
 
 \subsection{MHD rotor}
-Angular momentum handling. divB cleaning under strong twisting. 
+\label{sec:rotor}
 
-The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$, using a relaxed glass. The ambient medium ($\rho$ = 1) is sampled at a mean particle spacing $\Delta = 1/n_x$ with $n_x = 270$ (2.19 $\times$ $10^6$ particles), equivalent to Wissing \& Shen (2020)'s [256, 296, 12] close-packed setup in linear resolution; our slab is 30 particle spacings thick rather than 12. The dense cylinder ($\rho$ = 10, R = 0.1) is sampled at $\Delta$/sqrt(10) in x and y at unchanged z spacing.
+% Angular momentum handling. divB cleaning under strong twisting.
+% anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/sqrt(10), z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution.
 
-gamma=1.4
+The MHD rotor of Balsara \& Spicer (1999) \cite{BalsaraSpicer1999} places a dense, rapidly rotating cylinder in a uniformly magnetized medium at rest. The rotor winds up the field and launches torsional Alfvén waves into the ambient gas, which brake the cylinder and transport angular momentum outwards. For our purposes it is a robustness check: the field is twisted as strongly as anywhere in this suite, so the divergence error and the dissipation have to stay under control in a regime dominated by rotation rather than by shocks.
 
-anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/sqrt(10), z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
+We use the setup of Tóth (2000) \cite{Toth2000} in the form of Price et al. (2018) \cite{Price2018} and Wissing \& Shen (2020) \cite{WissingShen2020}. A periodic box of $1 \times 1 \times L_z$ with $L_z = 30/n_x$ holds an ambient medium of $\rho = 1$ at mean particle spacing $\Delta = 1/n_x$ with $n_x = 240$ ($2.22 \times 10^6$ particles), matching their $[256, 296, 12]$ setup in linear resolution with a slab $30$ particle spacings thick rather than $12$. The cylinder ($\rho = 10$, $R = 0.1$) is in solid-body rotation, $v = (v_0/R)[-y, x, 0]$ with $v_0 = 2$, in a uniform field $B = [5/\sqrt{4\pi}, 0, 0]$ at uniform pressure $P = 1$ with $\gamma = 1.4$, and we run to $t = 0.15$. The density contrast is unsmoothed, as in \cite{WissingShen2020}. We obtain it by compressing the glass block in $x$ and $y$ only (by $\sqrt{10}$, leaving the $z$ spacing untouched) rather than by a close-packed lattice; since the test is invariant in $z$, this affects only the initial smoothing length distribution.
 
+Figure \ref{fig:rotor} shows the magnetic pressure at $z=0$ and $t=0.15$. The characteristic structure is reproduced: the tilted central lens of expelled field, the two magnetic pressure maxima above and below it, and the near-circular front of the outgoing wave. Our contour limits are chosen automatically, whereas \cite{WissingShen2020} adopt $P_{mag} = [0, 2.642]$ from \cite{Toth2000, Price2018}, so the comparison to their Fig. 7 is qualitative rather than contour by contour. The mean normalized divergence error is $\langle\varepsilon_{\mathrm{div}B}\rangle = 1.6 \times 10^{-3}$, slightly above the $10^{-4}$–$10^{-3}$ they report for this test, which is consistent with the velocity noise floor of our glass initial conditions discussed at the beginning of §\ref{sec:numerical_tests}. Repeating the run with the baseline scheme leaves the structure and the divergence error essentially unchanged ($1.8 \times 10^{-3}$) but dissipates $1.1\%$ of the initial magnetic energy through artificial resistivity against $0.5\%$ for SLR.
+
+\todo[inline]{Rotor: regenerate the figure with the Tóth/Price limits (--vmin 0 --vmax 2.642 --contours 30) to make it a direct comparison to Wissing Fig. 7.}
 
 \begin{figure}
     \centering
     \includegraphics[width=0.7\linewidth]{img/Rotor/slice_Pmag_step1_z+0.0000.pdf}
-    \caption{MHD rotor magnetic pressure ($P_B=\frac{B^2}{2 \mu_0}$) at z=0 showing 30 contours to be compared Price 2018 and Wissing 2020. Using nx=240.}
+    \caption{MHD rotor magnetic pressure ($P_{mag} = B^2/2\mu_0$) at $z=0$ and $t=0.15$ with $n_x = 240$, showing 30 contours, using ARSLR. To be compared with Fig. 7 in Wissing \& Shen (2020) \cite{WissingShen2020} and the rotor in Price et al. (2018) \cite{Price2018}.}
     \label{fig:rotor}
 \end{figure}
 
@@ -286,7 +290,7 @@ We follow the setup of McNally et al. (2012) \cite{McNally2012} in the 3D form u
 
 McNally et al. pose a purely hydrodynamic problem in 2D and smooth the \textit{density} jump over $l_s$ as well; the magnetic field and the third dimension come from \cite{WissingShen2020}, and our initial conditions, like theirs, keep that jump sharp so that it is smoothed only over the kernel. The reference is therefore a strong baseline for the growth of the seeded mode rather than an exact target. We further sample with a relaxed glass rather than a close-packed lattice, our slab is $20$ particle spacings thick instead of $12$, and we use the sinc6 kernel with the default schemes of §\ref{sec:numerical_tests} instead of Wendland C4 with $200$ neighbors. Both our velocity and our field carry the opposite sign to theirs, making our configuration the mirror image in $x$: the physics is unchanged, but the rolls wind the other way.
 
-Figure \ref{fig:kh_density} shows the density in the $z=0$ plane at $t = 1.6$, $2.6$ and $3.2$. The rolls are well developed and the arms stay thin and connected to late times, with no blobbing and no gaps opening along the contact discontinuity. Our result resembles the GDSPH panels of Fig. 9 in \cite{WissingShen2020} rather than their TSPH panel, where a numerical surface tension fragments the arms and visibly slows the mode; a plausible reason is the generalized volume element formulation (§\ref{sec:iad}), which targets the same partition-of-unity error at density discontinuities that GDSPH addresses through the geometric density average. The stretching of the vortex along the field reported in \cite{WissingShen2020} is visible in our panels as well, most clearly at $t=3.2$.
+Figure \ref{fig:kh_density} shows the density in the mid-plane of the slab at $t = 1.6$, $2.6$ and $3.2$. The rolls are well developed and the arms stay thin and connected to late times, with no blobbing and no gaps opening along the contact discontinuity. Our result resembles the GDSPH panels of Fig. 9 in \cite{WissingShen2020} rather than their TSPH panel, where a numerical surface tension fragments the arms and visibly slows the mode; a plausible reason is the generalized volume element formulation (§\ref{sec:iad}), which targets the same partition-of-unity error at density discontinuities that GDSPH addresses through the geometric density average. The stretching of the vortex along the field reported in \cite{WissingShen2020} is visible in our panels as well, most clearly at $t=3.2$.
 
 For a quantitative comparison we use the mode amplitude $M$ of \cite{McNally2012},
 \begin{equation}
@@ -302,8 +306,8 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
 
 \begin{figure}
     \centering
-    \includegraphics[width=\linewidth]{img/KH/slice_rho_step1_z+0.0000_panels.pdf}
-    \caption{Magnetized Kelvin-Helmholtz instability: density slices at $z=0$ and $t=1.6$, $2.6$ and $3.2$, sampling the dense stream at $\Delta = 1/320$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
+    \includegraphics[width=\linewidth]{img/KH/slice_rho_step1_z+0.0312_panels.pdf}
+    \caption{Magnetized Kelvin-Helmholtz instability: density slices in the mid-plane of the slab ($z = 0.031$) at $t=1.6$, $2.6$ and $3.2$, sampling the dense stream at $\Delta = 1/320$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
     \label{fig:kh_density}
 \end{figure}
 
