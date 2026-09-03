@@ -14,11 +14,10 @@
 \usepackage{microtype}      % microtypography
 \usepackage{lipsum}
 \usepackage{graphicx}
-\graphicspath{ {./images/} }
-% \usepackage[style=authoryear, maxcitenames=1, mincitenames=1, uniquename=false, uniquelist=false]{biblatex}
 \usepackage[style=numeric]{biblatex}
 \addbibresource{references.bib}
 \usepackage[colorinlistoftodos]{todonotes}
+% \usepackage[style=authoryear, maxcitenames=1, mincitenames=1, uniquename=false, uniquelist=false]{biblatex}
 
 \title{Master Thesis \\ \vspace{0.5cm}
     \small{Smoothed Particle Magnetohydrodynamics on Exascale computing systems}}
@@ -53,13 +52,19 @@
 \input{chapters/discussion}
 
 \newpage
+\phantomsection
+\addcontentsline{toc}{section}{Bibliography}
 \section*{Bibliography}
-\printbibliography
+\printbibliography[heading=none]
+
+% \newpage
+% \section*{Bibliography}
+% \printbibliography
 % \bibliographystyle{unsrt}  
 % \bibliography{references}  
 
+\newpage
 \appendix
-\input{chapters/appendixA}
-\input{chapters/appendixB}
+\input{chapters/appendix}
 
 \end{document}

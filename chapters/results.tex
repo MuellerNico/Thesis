@@ -37,11 +37,11 @@ The two-dimensional slices plotted in the following sections are created with th
 % resHeat plots always in combination with structural plots, L1 errors/divB error. Use deltaE diss / Emagt=0. Axis time. or just report final. 
 
 
-\subsection{Alfvén Wave}
+\subsection{Alfvén wave}
 
 We perform the traveling circularized polarized (CP) Alfvén wave test \cite{Toth2000} which provides an analytical solution to the ideal MHD equations. Because the magnetic pressure is uniform, the wave is expected to remain the same after each period. It is therefore the most straight-forward correctness and accuracy test for our implementation. Deviation from the analytical solution over time is a good measurement of numerical dissipation and dispersion. 
 
-The 3D setup follows the one in used in PHANTOM \cite{Price2018} and GASOLINE2 \cite{WissingShen2020}: A periodic box of size $L\times L/2 \times L/2$ with $L=3$ with the waves traveling at a $30^\circ$ angle to the $x$ axis get a true multidimensional test of the full 3D operators. The rotated parallel and transverse velocities and magnetic fields are: 
+The 3D setup follows the one in used in PHANTOM \cite{Price2018} and GASOLINE2 \cite{WissingShen2020}: A periodic box of size $L = [3.0,1.5,1.5]$ with the waves traveling at a $30^\circ$ angle to the $x$ axis get a true multidimensional test of the full 3D operators. The rotated parallel and transverse velocities and magnetic fields are: 
 
 $ B_1 = 1, v_1 = 0\\
 B_2 = v_1 = 0.1 \sin(2\pi x_1/\lambda), \\
@@ -53,13 +53,13 @@ where $x_1$ is the rotated direction of propagation and $\lambda=1$ is the wavel
 
 \begin{figure}[]
     \centering
-    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
-    \includegraphics[width=0.49\linewidth]{img/Alfven/alfven_convergence.pdf}
+    \includegraphics[width=0.4\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
+    \includegraphics[width=0.4\linewidth]{img/Alfven/alfven_convergence.pdf}
     \caption{Results of the CP Alfvén Wave test. The particle magnetic field is projected onto the transverse axis $B2$ and scattered against position along the propagation direction $x_1$. The analytical solution (initial condition) is shown in black. In the second panel the L1 error $L_1(B_2)$ is shown as a function of particle count $n_x$.}
     \label{fig:alfven}
 \end{figure}
 
-\paragraph{Noisy Alfvén Wave}
+\paragraph{Noisy Alfvén wave}
 We present a slight modification of the Alfvén wave test, not present in the reference literature, specifically to evaluate the performance of ARSLR. Additionally to the classic setup defined above, we add positionally-seeded white-noise perturbation to the magnetic field $B$ and velocity field $v$ in the initial conditions. With this we aim to observe how different dissipation schemes tackle incoherent noise (unresolved structure) versus the coherent wave (resolved structure). As described in §\ref{sec:slr}, the hope for ARSLR is to use full dissipation on the former while being able to linearly reconstruct and thus preserve the latter. 
 
 To quantify this we perform a least-squares fit of the mode to both transverse components $B_2$ and $B_3$, and decompose the error into three errors: 
@@ -107,7 +107,7 @@ x > 0: \; (\rho_R, P_R, v_x, v_y, v_z, B_x, B_y, B_z) = (0.125, 0.1, 0, 0, 0, 0.
 
 The adiabatic index is $\gamma = 2$. We use constant AV with $\alpha = 1.0$\todo{double check value}. This choice is made because we want to specifically evaluate the performance of the MHD implementation and not the hydro components. Constant AV improves the solution shape by reducing the amount of oscillations and overshoots compared to AVSLR or AVSW. This way we can better isolate and compare the effects of AR schemes. 
 
-Figure \ref{fig:brio-wu} shows the results after $t=0.2$. Particles within the active middle region $x\in [-1,1]$ are projected onto the $x$-axis. Additionally to the L1 error, each panel shows an \texttt{osc}-error, intended to measure post-shock ringing. It is defined as the maximum deviation from the reference solution $max(|q-q_{ref}|)$, but restricted to flat plateau areas of the solution where $|\frac{dq_{ref}}{dx}|<0.2$. Additionally, these intervals are trimmed by $0.03$ off each end to exclude smeared shock-fronts. This metric is to be viewed with care as it is dominated by outliers. Both errors are calculated only over the window visible in Figure \ref{fig:brio_wu}.
+Figure \ref{fig:brio_wu} shows the results after $t=0.2$. Particles within the active middle region $x\in [-1,1]$ are projected onto the $x$-axis. Additionally to the L1 error, each panel shows an \texttt{osc}-error, intended to measure post-shock ringing. It is defined as the maximum deviation from the reference solution $max(|q-q_{ref}|)$, but restricted to flat plateau areas of the solution where $|\frac{dq_{ref}}{dx}|<0.2$. Additionally, these intervals are trimmed by $0.03$ off each end to exclude smeared shock-fronts. This metric is to be viewed with care as it is dominated by outliers. Both errors are calculated only over the window visible in Figure \ref{fig:brio_wu}.
 
 SLR wins out slightly over the baseline in most panels. Notably, showing slightly \textit{less} post-shock oscillation in $B_y$ while simultaneously also showing s\textit{less} resistive heating $\dot{u}_{diss}$\eqref{eq:res_heating}.
 
@@ -129,7 +129,7 @@ Some hydro artifacts remain despite constant AV, such as the pressure spike arou
 
 In this magnetized blast wave we have a central, over-pressurized region which then expands preferentially along magnetic field lines instead of uniformly. This lets us i.a. test energy conservation under extreme pressure. 
 
-A 3D square box of length $L=1$ is initialized with uniform density and resolution $N=250^3$. The inner region (radius $R=0.125$) is over-pressurized with $P_{in}=100$ while $P_{out}=1$). The initial magnetic field is set to $B = [10/ \sqrt{2}, 0, 10/\sqrt{2}]$, giving plasma beta $\beta_{in}=2$ and $\beta_{out}=0.02$. 
+A 3D square box $L=[1,1,1]$ is initialized with uniform density and resolution $N=250^3$. The inner region (radius $R=0.125$) is over-pressurized with $P_{in}=100$ while $P_{out}=1$). The initial magnetic field is set to $B = [10/ \sqrt{2}, 0, 10/\sqrt{2}]$, giving plasma beta $\beta_{in}=2$ and $\beta_{out}=0.02$. 
 
 Figure \ref{fig:sedov} shows the results after $t=0.02$. Compared to Fig. 8 in Wissing \& Shen (2020)\cite{WissingShen2020}, the bean-like shape of our blast wave appears a bit narrower with a slightly thicker shock front. The precise internal structure is hard to compare as their Fig 8. is a bit blurry (especially apparent when comparing the pressure panel). We used same per-particle-h and kernel interpolation plotting method as described in the beginning of §\ref{sec:numerical_tests}. But overall we observe similar structure. We also clearly see the expected double-shock in thermal pressure and the outer ring in the other three panels. 
 
@@ -148,24 +148,24 @@ Figure \ref{fig:sedov_metrics} shows that the conservation of total energy and t
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.5\linewidth]{img/sedov/compare_etot.pdf}
-    \includegraphics[width=0.49\linewidth]{img/sedov/compare_conv.pdf}
+    \includegraphics[width=0.4\linewidth]{img/sedov/compare_etot.pdf}
+    \includegraphics[width=0.4\linewidth]{img/sedov/compare_conv.pdf}
     \caption{Magnetized Sedov blast: Conservation of energy and evolution of divB error over time for different resolutions. The left panel shows the normalized total energy. An average run with $250^3$ particles stays within less than $0.3\%$ deviation. The right panel shows how the time-averaged mean divergence error decreases with increasing linear resolution $N$.}
     \label{fig:sedov_metrics}
 \end{figure}
 
-\subsection{Current Loop Advection}
+\subsection{Current loop advection}
 \label{sec:MHD_loop}
 
 A weak magnetic loop is advected by a constant velocity field. The magnetic field is chosen small enough to be dynamically unimportant. In theory, the loop is thus expected to simply be moved along the velocity field and maintain shape throughout. This test is therefore great for determining numerical diffusion of the magnetic field. 
 
-A thin periodic box is initialized with length $L=[2,1,2\frac{\sqrt{6}}{n_x}]$, velocity $v=[2,1,\frac{15}{n_x}]$, uniform pressure $P=1$, uniform density $\rho = 1$ and resolution $[n_x, n_y, n_z] = [120, 60, 30]$. The magnetic field inside the loop of radius $R_0=0.3$ is defined as ${B_0} = \frac{A_0}{r}(y, -x, 0)$ with $A_0=10^{-3}$. Outside the loop the magnetic field is zero. The loop is advected for $t=20$ periods. 
+A thin periodic box is initialized with length $L=[2,1,\frac{30}{n_y}]$, velocity $v=[2,1,\frac{15}{n_x}]$, uniform pressure $P=1$, uniform density $\rho = 1$ and resolution $[n_x, n_y, n_z] = [120, 60, 30]$. The magnetic field inside the loop of radius $R_0=0.3$ is defined as ${B_0} = \frac{A_0}{r}(y, -x, 0)$ with $A_0=10^{-3}$. Outside the loop the magnetic field is zero. The loop is advected for $t=20$ periods. 
 
 This test is especially susceptible to the velocity noise floor discussed in the beginning of §\ref{sec:numerical_tests}. The flow needed to conduct this test adequately needs to be uniform and almost perfectly smooth, which SPH-EXA with its glass-setup and kernel choice fails to deliver. Thus, the results are hard to compare against those in the reference papers using lattice initial conditions. 
 
 Figure \ref{fig:loop_av_comp} compares four different runs, all using the same ARSLR scheme but combined with different AV schemes. It is clear that constant AV performs best at maintaining the loops shape, followed by AVSLR and lastly AVSW. This is a direct consequence of how well each scheme smoothes out the velocity field, specifically sub-resolution shear-noise. 
 
-Constant AV with $\alpha = 1$ is constantly tackling any kind of noise based on the approach velocity $\omega_{ab}$ of two particles (see eq. \eqref{eq:av_Pi}. AVSLR subtracts the linear part of the approach velocity fully due to the Balsara-modulator which is designed to specifically detect shear flow and reduce the impact of AV in those cases. Meanwhile AVSW reduces $\alpha$ to $\alpha_{min}$ because switches only activate when there is compression, i.e. $\nabla \cdot \mathbf{v}<0$ \cite{MorrisMonaghan1997}. 
+Constant AV with $\alpha = 1$ is constantly tackling any kind of noise based on the approach velocity $\omega_{ab}$ of two particles (see eq. \eqref{eq:av_Pi}. AVSLR subtracts the linear part of the approach velocity fully due to the Balsara-modulator which is designed to specifically detect shear flow and reduce the impact of AV in those cases. Meanwhile AVSW reduces $\alpha$ to $\alpha_{min}$ because switches only activate when there is compression. 
 
 Remaining velocity noise leads to two effects via its small scale unphysical transverse flow: $E_{mag}$ injection by stretching the field (small scale dynamo via the induction equation \eqref{eq:induction}), and increased dissipation via the signal velocity $v_{\mathrm{sig},B} = |\mathbf{v}_{ab} \times \hat{\mathbf{r}}_{ab}|$ \eqref{eq:vsigB} used for resistivity \eqref{eq:ar_dB}. Two large noise driven terms which deteriorate the structure and violate conservation of magnetic energy in the direction of whichever term dominates. 
 
@@ -210,18 +210,29 @@ python sphexa/scripts/plot_slice.py out/9533596_SLR_avswitches/dump.h5 0 out/953
 \end{figure}
 
 \subsection{Orszag-Tang vortex}
-Robustness in multi-shock regime. Stability and divB cleaning when shocks collide. Density/pressure structure linecut vs reference. 
+The Orszag-Tang vortex \cite{Orszag1979} tests how well MHD codes handle transition to super-sonic turbulence  involves the development of super-sonic turbulence and multi-shock regimes where different shocks collide. It is therefore primarily a robustness and stability test. 
+
+A thin periodic box of $L = (1, 1, \frac{30}{n_x})$ is initialized with resolutions $[n_x,n_x,30]$ with $n_x\in\{120,240,510\}$. The initial velocity field and the doubly periodic magnetic field are set to:
+
+$ [v_x, v_y, v_z] = v_0[-\sin(2\pi (y - y_{min})), \sin(2\pi (x - x_{min})), 0]$\\ 
+$[B_x, B_y, B_z] = B_0[-\sin(2\pi (y - y_{min})), \sin(4\pi (x - x_{min})), 0],$
+
+where $v_0=1$ and $B_0=1/\sqrt{4\pi}$. The initial plasma beta $\beta_0 = 10/3$ and Mach number $M_0=\frac{v_0}{c_s}=1$ and the usual adiabatic index $\gamma=5/3$ then give us our initial pressure $P_0=B_0^2 \beta_0 /2\approx0.133$ and density $\rho_0=\gamma P_0 M_0 \approx 0.221$.
+
+Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions
+
+% Robustness in multi-shock regime. Stability and divB cleaning (longer sim time?) when shocks collide. Density/pressure structure linecut vs reference. total energy drift. 
 
 \begin{figure}
     \centering
-    % \includegraphics[width=\linewidth]{img/OT/gray_r_slice_rho_step1_z+0.0000_panels.pdf}
-    \includegraphics[width=\linewidth]{img/OT/slice_rho_step1_z+0.0000_panels.pdf}
+    \includegraphics[width=\linewidth]{img/OT/gray_r_slice_rho_step1_z+0.0000_panels.pdf}
+    % \includegraphics[width=\linewidth]{img/OT/slice_rho_step1_z+0.0000_panels.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000_120.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000_120.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000.pdf}
     \caption{OT vortex at times t=0.5 and t=1.0. nx=120 (left), nx=240 (right)}
-    \label{fig:placeholder}
+    \label{fig:ot_slices}
 \end{figure}
 
 \begin{figure}
@@ -229,19 +240,19 @@ Robustness in multi-shock regime. Stability and divB cleaning when shocks collid
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
     \caption{Orszag-Tang: Pressure slices at t=0.5 along y=0.3125 and y=0.4277 in z=0 plane for different numerical resolutions. To be compared with Price 2018}
-    \label{fig:placeholder}
+    \label{fig:ot_linecuts}
 \end{figure}
+
 
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{img/OT/compare_divb.pdf}
-    \caption{OT: divB error. mby only show 3rd panel}
-    \label{fig:placeholder}
+    \caption{OT: divB error. TODO replace with run up to t=3 to show plateau convergence}
+    \label{fig:ot_divb}
 \end{figure}
 
-\begin{verbatim}
-python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
-\end{verbatim}
+\todo[inline]{decreasing divB error. maybe emag}
+% python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
 
 \subsection{MHD rotor}
 Angular momentum handling. divB cleaning under strong twisting. 
@@ -251,7 +262,6 @@ The rotor was initialised in a periodic box of $1 \times 1 \times L_z$ with $L_z
 gamma=1.4
 
 anisotropically sampled (different from wissing)!! compresses the inner glass in xy only (halfA = L/sqrt(10), z multiplicity unchanged). simpler with glass blocks. rho=10 achieved. z-invariant test, therefore fine. just initial smoothing length distribution. 
-
 
 
 \begin{figure}
@@ -297,7 +307,7 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.7\linewidth]{img/KH/compare_kh.pdf}
+    \includegraphics[width=0.5\linewidth]{img/KH/compare_kh.pdf}
     \caption{Kelvin-Helmholtz mode amplitude $M$ \eqref{eq:kh_amplitude} over time. The reference solution of McNally et al. (2012) \cite{McNally2012}, a converged 2D hydrodynamic grid result, is shown in black and ends at $t=1.5$. Our hydrodynamic run follows it closely, including the oscillations of the seeded mode before $t=0.5$. The magnetized run ($B = [-0.1,0,0]$) grows more slowly from $t \approx 0.7$ onwards and saturates earlier and at a lower amplitude, which is the expected effect of magnetic tension acting against the deformation of the interface.}
     \label{fig:kh_growth}
 \end{figure}
@@ -309,7 +319,7 @@ python sphexa/scripts/plot_constants_compare.py kh out/12507482_KH_hydro_290c
 
 \todo[inline]{KH: field strength scan (beta series) to show the growth rate modification is monotonic in B? divB error and resistive heating for this test are not discussed yet.}
 
-\subsection{Subsonic MHD Turbulence}
+\subsection{Subsonic MHD turbulence}
 \label{sec:mhd_turb}
 
 Application. DivB error + resistive heating. $1600^3$ particles (more than 4 billion). 
@@ -330,16 +340,16 @@ Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu
     \label{fig:turb}
 \end{figure}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_rho_step4_y+0.0000.png}
-    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_vmag_step4_y+0.0000.png}
-    \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_Bmag_step4_y+0.0000.png}
-    \caption{OLD PLOT: MHD turbulence using a mean magnetic field $B_0 \hat{z}$ with $B_0 = 0.15$}
-    \label{fig:placeholder}
-\end{figure}
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_rho_step4_y+0.0000.png}
+%     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_vmag_step4_y+0.0000.png}
+%     \includegraphics[width=0.49\linewidth]{img/Turb/highres/slice_Bmag_step4_y+0.0000.png}
+%     \caption{OLD PLOT: MHD turbulence using a mean magnetic field $B_0 \hat{z}$ with $B_0 = 0.15$}
+%     \label{fig:placeholder}
+% \end{figure}
 
-Ruben video demo: Trans-alfvenic
+% Ruben video demo: Trans-alfvenic
 
 
 
