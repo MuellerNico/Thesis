@@ -21,7 +21,7 @@ For simplicity we label the baseline scheme, using constant $\alpha_B = 0.5$, in
 
 \paragraph{Plotting Method}
 \label{sec:plotting_method}
-The two-dimensional slices plotted in the following sections are created with the following method: A particle $i$ is only selected if its distance to the slice plane is smaller than $2h_i$, i.e. the plane actually falls inside its kernel support. Then the selected particles are interpolated onto a regular grid of $512 \times 512$ pixels. Pixel values are calculated with the normalized SPH sum $ {\sum f_i W(r_{ip}/ h_i)}/{\sum W(r_{ip}/h_i)}$, where $W$ is the cubic spline kernel, $h_i$ the particle's smoothing length, and $r_{ip}=|r_i-r_p|$ the full 3D distance between the particle and the pixels center (including out-of-plane offset). This way of selection and interpolation tries to stay as close as possible to the actual physical representation. 
+The two-dimensional slices plotted in the following sections are created with the following method: A particle $i$ is only selected if its distance to the slice plane is smaller than $2h_i$, i.e. the plane actually falls inside its kernel support. Then the selected particles are interpolated onto a regular grid of $512 \times 512$ pixels. Pixel values are calculated with the normalized SPH sum $ {\sum f_i W(r_{ip}/ h_i)}/{\sum W(r_{ip}/h_i)}$, where $W$ is the cubic spline kernel, $h_i$ the particle's smoothing length, and $r_{ip}=|r_i-r_p|$ the full 3D distance between the particle and the pixels center (including out-of-plane offset). This way of selection and interpolation tries to stay as close as possible to the actual physical representation. \todo{midpoint of box}
 
 % Divergence Error: Show that divB stays bounded and decreases with increasing resolution. Flat plateau in divB error plot -> source limited, not cleaning limited. 
 
@@ -176,7 +176,7 @@ With this knowledge in mind, Figure \ref{fig:loop_ar_comp} uses constant AV to m
 % AV scheme -> sub-resolution shear-noise amplitude -> du\_diss (resistivity)
 % AV dissipates least (14\% vs 28\% vs 127\%) but also removes this injection which would otherwise mask the loss. AVSLR somehow keeps the balance. 
 
-\todo[inline]{Loop: density gradient plot. Notes on velocity noise, the numerical dynamo from repo folder. divB evolution unnormalized? mby table of |delta v|}
+\todo[inline]{Loop: delta density plot. divB evolution unnormalized? mby table of |delta v|. remove grid lines from lineplots}
 
 \begin{figure}
     \centering
@@ -192,7 +192,7 @@ With this knowledge in mind, Figure \ref{fig:loop_ar_comp} uses constant AV to m
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{img/MHD-Loop/AR_scheme_slice_Bmag_step3_z+0.0000_panels.pdf}
-    \caption{MHD advection loop: No AR vs $\alpha_B=0.5$ vs SLR. All using constant AV.}
+    \caption{MHD advection loop: Slices of magnetic field magnitude after $t=20$ for three different resistivity configurations (left to right): No AR ($\alpha_B=0$) vs a05 ($\alpha_B=0.5$) vs SLR. All using constant AV.}
     \label{fig:loop_ar_comp}
 \end{figure}
 
@@ -219,19 +219,21 @@ $[B_x, B_y, B_z] = B_0[-\sin(2\pi (y - y_{min})), \sin(4\pi (x - x_{min})), 0],$
 
 where $v_0=1$ and $B_0=1/\sqrt{4\pi}$. The initial plasma beta $\beta_0 = 10/3$ and Mach number $M_0=\frac{v_0}{c_s}=1$ and the usual adiabatic index $\gamma=5/3$ then give us our initial pressure $P_0=B_0^2 \beta_0 /2\approx0.133$ and density $\rho_0=\gamma P_0 M_0 \approx 0.221$.
 
-Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions
+Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions. Comparing to Fig. 5 in Wissing \% Shen (2020) \cite{WissingShen2020} and Fig. 32 in Price et al. 2018 \cite{Price2018}, we manage to capture the overall structure well. With increasing resolution the shocks and the trapped high-density filament become visibly more defined. At $t=1$ \todo{turb stage looks different}
+
+Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared with Fig. 33 in Price et al. (2018) \cite{Price2018}. We get a qualitatively and quantitatively very similar profile. With increasing resolution, the shock fronts become sharper.
 
 % Robustness in multi-shock regime. Stability and divB cleaning (longer sim time?) when shocks collide. Density/pressure structure linecut vs reference. total energy drift. 
 
 \begin{figure}
     \centering
-    \includegraphics[width=\linewidth]{img/OT/gray_r_slice_rho_step1_z+0.0000_panels.pdf}
-    % \includegraphics[width=\linewidth]{img/OT/slice_rho_step1_z+0.0000_panels.pdf}
+    % \includegraphics[width=\linewidth]{img/OT/gray_r_slice_rho_step1_z+0.0000_panels.pdf}
+    \includegraphics[width=\linewidth]{img/OT/slice_rho_step1_z+0.0000_panels.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000_120.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000_120.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000.pdf}
-    \caption{OT vortex at times t=0.5 and t=1.0. nx=120 (left), nx=240 (right)}
+    \caption{OT vortex at times t=0.5 and t=1.0. nx=120 (left), nx=240 (right). z=0}
     \label{fig:ot_slices}
 \end{figure}
 
@@ -239,7 +241,7 @@ Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the t
     \centering
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
     \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
-    \caption{Orszag-Tang: Pressure slices at t=0.5 along y=0.3125 and y=0.4277 in z=0 plane for different numerical resolutions. To be compared with Price 2018}
+    \caption{Orszag-Tang vortex: Pressure slices at $t=0.5$ along $y=0.3125$ (\textit{left}) and $y=0.4277$ (\textit{right}) plane for different resolutions $n_x\in\{120,240,510\}$.}
     \label{fig:ot_linecuts}
 \end{figure}
 
@@ -251,7 +253,7 @@ Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the t
     \label{fig:ot_divb}
 \end{figure}
 
-\todo[inline]{decreasing divB error. maybe emag}
+\todo[inline]{decreasing divB error. maybe emag. discuss the "beads" mentioned in reference papers?}
 % python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
 
 \subsection{MHD rotor}
@@ -312,10 +314,10 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
     \label{fig:kh_growth}
 \end{figure}
 
-\begin{verbatim}
-python sphexa/scripts/plot_constants_compare.py kh out/12507482_KH_hydro_290c
-    out/12518185_KH_290c --labels hydro,MHD --clean --tmax 2.4
-\end{verbatim}
+% \begin{verbatim}
+% python sphexa/scripts/plot_constants_compare.py kh out/12507482_KH_hydro_290c
+%     out/12518185_KH_290c --labels hydro,MHD --clean --tmax 2.4
+% \end{verbatim}
 
 \todo[inline]{KH: field strength scan (beta series) to show the growth rate modification is monotonic in B? divB error and resistive heating for this test are not discussed yet.}
 
