@@ -185,31 +185,130 @@ Both scripts only need the dump and are independent of the simulation build, so 
 be run on a login node or locally.
 
 \subsection{Caveats}
-\todo[inline]{move parts to appendix B}
 \begin{itemize}
-    \item \textbf{The $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions.} The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}. You can instead read the unnormalized \texttt{magneto::divB} from the dump. 
-    \item \textbf{Divergence-cleaning parameters are fixed} at $f_\mathrm{clean} = \sigma_c = 1$ and are not exposed on the command line. A more aggressive cleaning speed would require an additional Courant limit on the time step.
-    \item \textbf{No block time stepping.} There is no MHD analogue of the \texttt{ve-bdt} propagator; all particles are advanced on a global time step.
-    \item \textbf{Self-gravitating MHD is untested.} Nothing prevents combining \texttt{--prop magneto-ve} with self-gravity, but neither the time-step control nor the Lorentz force have been validated in that regime.
-    \item \textbf{Exact energy conservation of the cleaning terms assumes equal particle masses}, which all built-in test cases satisfy. But this might not be future proof. 
+    \item \textbf{The $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions.} The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}. You can instead read the unnormalized \texttt{magneto::divB} from the dump.
 \end{itemize}
+
+Implementation-level limitations (fixed cleaning parameters, global time stepping, untested regimes) are collected in Appendix~\ref{sec:appendix_implementation}.
 
 \newpage
 
 \section{Details of code implementation}
-Software documentation for the SPH-EXA team and future developers of the code. 
+\label{sec:appendix_implementation}
 
-Need full velocity Jacobian $J_v$ for induction. Thus, overridden IAD driver. 
+This appendix summarizes the software side of the MHD extension, aimed at the SPH-EXA team and anyone extending the code. The numerical schemes themselves are derived in Section~\ref{sec:theory}; here only their mapping onto the code is described. Familiarity with the hydro side (the \texttt{ve} propagator, the \texttt{ijLoop} kernel framework, \texttt{FieldList}, the cstone domain) is assumed. The code is available in the \href{https://github.com/MuellerNico/sphexa/}{\textbf{GitHub fork}}.
 
-branching on curlv allocated? new neighbor lists. gradh correction.
+\subsection{Architecture}
 
-hardcoded divB cleaning variables. $f_{clean}=\sigma_c = 1$. Would need courant limit if raising fclean. evolve psi/ch. Only conservative conjugate pair for equal particle masses. mj/mi resiudal factor. 
+MHD is implemented as a \emph{second particle dataset plus a second propagator}, not as a mode of the hydro propagator. All MHD-specific code lives in two places:
 
-divBerr diagnostic unreliable on domains with B=0 regions/spots. 
+\begin{verbatim}
+sph/include/sph/magneto_ve/           kernel layer (ijLoop functors, CPU/GPU drivers)
+main/src/propagator/magneto_ve.hpp    propagator (field lists, halo exchanges, step order)
+\end{verbatim}
 
-Using SLR: \texttt{T du\_diss = diss\_op * dot(B\_ab\_raw, B\_ab);} instead of \texttt{norm2(B\_ab)}.
-energy conjugate of dBdiss: dE\_B/dt goes as B\_ab . B'\_ab, not |B'\_ab|2. Identical for the non-reconstructing schemes (B'\_ab == B\_ab). The transverse part of the SLR correction does no work on the field, so charging heat for it would leak energy.
+Everything else is a small hook into shared code: \texttt{simulation\_data.hpp} gains a \texttt{magneto} member holding the new dataset, \texttt{init/factory.hpp} gains the MHD test cases, \texttt{observables/} gains the magnetic-energy and divergence-error columns, and \texttt{file\_init.hpp} restores the magneto dataset on restart.
 
-No block time step. self-gravitating MHD untested (timestep control, limit lorentz force movement)
+A separate propagator was a deliberate choice. Field lists and halo-exchange tuples are compile-time constructs in SPH-EXA, so a runtime ``is $\mathbf{B}$ allocated'' switch could not change what \texttt{sync()} exchanges or what gets allocated. The two pipelines also differ in the middle --- MHD replaces the gradient and momentum kernels and inserts an induction step --- and the codebase's existing answer to physics variants is one propagator per physics (\texttt{std}, \texttt{ve}, \texttt{turb}, \dots). If unification is ever wanted, the viable route is compile-time: a \texttt{bool Magneto} template parameter on the hydro propagator with conditional field lists, the same pattern the MHD propagator already uses internally for its optional fields.
 
-Code \href{https://github.com/MuellerNico/sphexa/commits/develop/}{\textbf{GitHub fork}}
+The guiding convention throughout is: \emph{when in doubt, mirror the hydro file}. \texttt{magneto\_ve.hpp} mirrors \texttt{ve\_hydro.hpp}, \texttt{iad\_full\_divv\_curlv\_kern.hpp} mirrors \texttt{iad\_divv\_curlv\_kern.hpp}, and so on. Deviations from the hydro pattern are either bugs or carry a comment explaining why.
+
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+file in \texttt{magneto\_ve/} & contents \\
+\midrule
+\texttt{magneto\_data.hpp}                & \texttt{MagnetoData}: the MHD particle fields with their allocation and output plumbing. Mirrors \texttt{ParticlesData}. \\
+\texttt{iad\_full\_divv\_curlv\_kern.hpp} & Fused loop: IAD matrix, grad-h term, full velocity Jacobian, \texttt{divv}/\texttt{curlv}. \\
+\texttt{divB\_curlB\_kern.hpp}            & $\mathbf{B}$ Jacobian, $\nabla\cdot\mathbf{B}$ (direct and conjugate), $\nabla\times\mathbf{B}$. \\
+\texttt{iad\_div\_curl.hpp}/\texttt{.cu}  & Driver calling the two loops above. \\
+\texttt{magnetic\_momentum\_energy*}      & Momentum/energy with magnetic stress, tensile-instability correction, magnetosonic time step. \\
+\texttt{induction\_dissipation*}          & $d\mathbf{B}/dt$: ideal induction, artificial resistivity, $\psi$ cleaning. \\
+\texttt{mhd\_kernels.hpp}                 & \texttt{mhdSLRCorrection} and small math helpers. \\
+\texttt{time\_integration*}               & Second-order Adams--Bashforth update of $\mathbf{B}$ and $\psi$. \\
+\bottomrule
+\end{tabularx}
+\caption{The MHD kernel layer. The \texttt{\_kern.hpp}/driver split follows the hydro convention: the \texttt{\_kern.hpp} holds the per-pair interaction and postamble functors shared by both backends, the driver holds the CPU/GPU dispatch. Only \texttt{.cu} files are listed in the \texttt{CMakeLists.txt}, so adding a header requires no build change.}
+\end{table}
+
+\subsection{Particle fields}
+
+\texttt{MagnetoData} carries 40 fields, registered in the propagator in three groups:
+
+\begin{itemize}
+    \item \emph{Conserved} (12): $\mathbf{B}$, $d\mathbf{B}/dt$ with its previous-step copy for Adams--Bashforth, and the cleaning triple \texttt{psi\_ch}, \texttt{d\_psi\_ch}, \texttt{d\_psi\_ch\_m1}. These are exchanged by \texttt{domain::sync} and written to restartable dumps.
+    \item \emph{Dependent} (19): the velocity Jacobian (9 components), $\nabla\cdot\mathbf{B}$ (direct and conjugate forms), $\nabla\times\mathbf{B}$, and the dissipation diagnostics. Recomputed every step.
+    \item \emph{$\mathbf{B}$-gradient} (9): \texttt{dBxdx}\,\dots\,\texttt{dBzdz}, appended to the dependent list at compile time \emph{only} when SLR resistivity is active. Without it these fields are never allocated, computed, or exchanged.
+\end{itemize}
+
+Precision follows the hydro types: double for $\mathbf{B}$ and its derivatives, float for the Jacobians and diagnostics. In total MHD adds roughly 170 bytes per particle over hydro.
+
+\subsection{Configuration}
+
+The propagator is \texttt{MagnetoHydroProp<bool SLR, bool MhdSLR>} with two independent compile-time flags: \texttt{SLR} is the hydro slope-limited reconstruction in the artificial viscosity (Section~\ref{sec:slr}), shared with the hydro propagator; \texttt{MhdSLR} is the reconstruction of $\mathbf{B}$ in the artificial resistivity (Section~\ref{sec:ar}). Because the choice selects a template specialization rather than a runtime branch, \texttt{-{}-resistivity} is parsed in \texttt{sphexa.cpp} \emph{before} the propagator factory runs, and all four flag combinations are instantiated. At startup the propagator prints one line per active flag (``SLR is activated'', ``SLR resistivity is activated''); both are needed to identify a run's configuration from its log.
+
+\subsection{The time step}
+
+\texttt{computeForces} deliberately matches the hydro propagator's structure, including its count of four halo exchanges per step:
+
+\begin{verbatim}
+domain::sync
+FindNeighbors
+XMass
+  halo 1:  xm
+GeneralizedVolumeElements
+  halo 2:  vx vy vz kx | Bx By Bz
+IadVelocityDivCurlGradh          (two ijLoops, see below)
+EquationOfState
+  halo 3:  c11..c33 divv curlv c
+[AVswitches]
+  halo 4:  alpha gradh p | psi_ch | [J_v if SLR] | [J_B if MhdSLR]
+MomentumAndEnergy
+InductionAndDissipation
+[Gravity]
+\end{verbatim}
+
+followed in \texttt{integrate()} by the time-step reduction, position update, \texttt{integrateMagneticQuantities} and the smoothing-length update.
+
+Keeping the exchange count at four relies on invariants worth knowing before modifying the pipeline: $\mathbf{B}$ rides along in exchange 2 because it is conserved and already final there; \texttt{psi\_ch} and the $\mathbf{B}$ Jacobian are final before \texttt{MomentumAndEnergy}, which touches neither, so no exchange is needed between the last two kernels; and \texttt{divB}, \texttt{curlB} and their companions are only ever read on the $i$ side and are deliberately \emph{never} exchanged. A new kernel that reads any of these at $j$ must add the field to an exchange --- the failure mode is silently wrong halo values, not a crash.
+
+\subsection{Kernel-level notes}
+
+\subsubsection*{Fused gradient loop}
+The induction equation (Eq.~\ref{eq:induction_code}) needs the full velocity Jacobian $\mathbf{J}_v$, which plain hydro does not compute. Rather than adding a third gradient pass, the IAD and velocity-gradient computations are fused into one neighbor loop. This works because the IAD matrix multiply commutes with the neighbor sum: $\mathcal{C}$ is constant per particle $i$, so the interaction accumulates raw sums and the postamble applies $\mathcal{C}$ afterwards --- letting the same postamble both \emph{produce} the IAD matrix and \emph{consume} it for the Jacobian in a single pass. A second loop computes the $\mathbf{B}$ gradients. Fusing all three into one loop was tried and reverted (see below).
+
+Unlike hydro's velocity Jacobian, which can be stored as 6 symmetric components because the artificial-viscosity correction only needs the scalar form $\mathbf{r}^T \mathbf{J}_v \mathbf{r}$, the $\mathbf{B}$ reconstruction needs the vector $\mathbf{J}_B\,\mathbf{r}_{ab}$, in which the antisymmetric part does not cancel. Hence 9 stored $\mathbf{B}$-gradient components.
+
+\subsubsection*{Induction and dissipation}
+The only kernel with no hydro analogue. Per pair it evaluates the conjugate-pair artificial resistivity, the constrained divergence-cleaning term, and (under \texttt{MhdSLR}) the \texttt{mhdSLRCorrection} reconstruction of $\mathbf{B}_{ab}$; the postamble adds the ideal induction term, the $\psi$ source, and the resistive heating.
+
+One choice here looks wrong at first sight but is intentional: with reconstruction active, the heating is computed as $\mathbf{B}_{ab} \cdot \mathbf{B}'_{ab}$ rather than $|\mathbf{B}'_{ab}|^2$. The energy conjugate of the dissipation term $d\mathbf{B}/dt \propto \mathbf{B}'_{ab}$ is the \emph{unreconstructed} field difference; the transverse part of the SLR correction does no work on the field, and charging heat for it would leak energy. For the non-reconstructing schemes the two forms coincide.
+
+\subsubsection*{Time integration}
+\texttt{integrateMagneticQuantities} performs the Adams--Bashforth update of $\mathbf{B}$ and $\psi$. It is a per-particle pass with no neighbor access, structured exactly like hydro's \texttt{computePositions}, and is the reference to copy for any future per-particle MHD pass.
+
+\subsubsection*{A known divergence from hydro}
+The MHD \texttt{divv}/\texttt{curlv} include the grad-h factor ($1/\Omega$) in their normalization; the hydro versions do not. Both feed the AV switches and Balsara limiters, so artificial viscosity behaves slightly differently between the two propagators, and \texttt{sedov} vs.\ \texttt{sedov-magneto} is not an apples-to-apples comparison on the AV side. The grad-h-consistent form is arguably the correct one; unifying the two is left as an upstream decision.
+
+\subsection{Performance characteristics}
+
+The details are in Section~\ref{sec:performance}; what a developer should know is the cost model. An MHD step costs about $1.5\times$ a hydro step, but the magnetosonic CFL constraint makes the MHD time step roughly $100\times$ smaller, so time-to-solution is dominated by step count, not per-step cost --- per-step micro-optimization has little leverage.
+
+Within a step, \emph{neighbor-traversal count dominates}: fusing the IAD and velocity-gradient loops (three traversals down to two) cut that kernel's cost by the predicted third. Input-tuple width, by contrast, does not matter: removing 11 unused-per-pair fields from the induction kernel's tuple was measured as a null result, because the kernel is arithmetic-bound. The practical rule: anything that removes a traversal is worth doing; anything that only narrows a tuple is not, unless it also removes arithmetic.
+
+There is also a hard compile-time limit: keep an \texttt{ijLoop} interaction's result tuple at or below ${\sim}18$ elements. The reverted three-way loop fusion produced a 33-wide result that pushed \texttt{nvcc}'s frontend past a two-hour build time-out, with the blow-up occurring only in the expensive neighborhood-mode instantiations --- so compile time must be checked on the full translation unit, never on a single pinned neighborhood mode.
+
+\subsection{Limitations}
+
+\begin{itemize}
+    \item \textbf{Divergence-cleaning parameters are fixed} at $f_\mathrm{clean} = \sigma_c = 1$ and are not exposed on the command line. A more aggressive cleaning speed would require an additional Courant limit on the time step.
+    \item \textbf{Artificial resistivity imposes no time-step constraint.} \texttt{dtCourant} comes only from the magnetosonic signal speed; the effective diffusivity $\eta \sim \tfrac{1}{2}\alpha_B\, v_\mathrm{sig}\, h$ would demand $\Delta t \lesssim h/(\alpha_B v_\mathrm{sig})$, which is not enforced. The cleaning wave speed \emph{is} covered, being bounded by the magnetosonic speed. The risk zone is strong shear at low sound speed.
+    \item \textbf{Exact energy conservation of the cleaning terms assumes equal particle masses} (a residual factor $m_j/m_i$ otherwise), which all built-in test cases satisfy --- but this might not be future proof.
+    \item \textbf{No block time stepping.} There is no MHD analogue of the \texttt{ve-bdt} propagator; all particles are advanced on a global time step.
+    \item \textbf{Self-gravitating MHD is untested.} Nothing prevents combining \texttt{-{}-prop magneto-ve} with self-gravity, but neither the time-step control nor the Lorentz force have been validated in that regime.
+    \item \textbf{Symmetric neighbor-search modes are unsupported.} The induction loop uses \texttt{du} as both input and output, which the symmetric-mode machinery silently aliases onto an accumulator, corrupting the internal-energy update. The default traversal and the compressed-full mode are unaffected; the clustered and compressed-half modes would need this fixed first.
+    \item \textbf{No automated tests} cover the MHD kernels yet. The two highest-value additions would be a unit test for \texttt{mhdSLRCorrection} (for a linear field $\mathbf{B}(\mathbf{x}) = \mathbf{B}_0 + \mathbf{J}\mathbf{x}$ the corrected $\mathbf{B}_{ab}$ must vanish) and a gradient-consistency test checking that a linear field reproduces its imposed $\nabla\cdot\mathbf{B}$, $\nabla\times\mathbf{B}$ and Jacobian.
+\end{itemize}
