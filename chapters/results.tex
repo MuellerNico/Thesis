@@ -126,7 +126,7 @@ Some hydro artifacts remain despite constant AV, such as the pressure spike arou
 
 
 \subsection{Magnetized Sedov blast}
-\label{sedov}
+\label{sec:sedov}
 
 In this magnetized blast wave we have a central, over-pressurized region which then expands preferentially along magnetic field lines instead of uniformly. This lets us i.a. test energy conservation under extreme pressure. 
 
@@ -254,6 +254,8 @@ Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared wit
     \caption{OT: divB error. TODO replace with run up to t=3 to show plateau convergence}
     \label{fig:ot_divb}
 \end{figure}
+
+% python sphexa/scripts/plot_constants_compare.py divb out/12686005_OT_120_t3/ out/12668681_OT_240_t3/ out/12685706_OT_510_t3/ --labels nx=120,nx=240,nx=510 --clean
 
 \todo[inline]{decreasing divB error. maybe emag. discuss the "beads" mentioned in reference papers?}
 % python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
