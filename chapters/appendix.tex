@@ -8,6 +8,7 @@
 % careful with divb diagnostic in B=0 areas (e.g. Loop)
 
 \section{Usage instructions}
+\label{sec:appendixA}
 
 This appendix is a quick guide for running the MHD part of SPH-EXA. It assumes familiarity with running hydrodynamic simulations with SPH-EXA: building, launching, glass blocks, HDF5 dumps and restarts all work exactly as before. Only what is specific to MHD is described here. The code is available in the \href{https://github.com/MuellerNico/sphexa/}{\textbf{GitHub fork}}.
 
@@ -193,7 +194,7 @@ Implementation-level limitations (fixed cleaning parameters, global time steppin
 \newpage
 
 \section{Details of code implementation}
-\label{sec:appendix_implementation}
+\label{sec:appendixB}
 
 \todo[inline]{Revise this section. Just drafted for now}
 
@@ -201,7 +202,7 @@ This appendix summarizes the software side of the MHD extension, aimed at the SP
 
 \subsection{Architecture}
 
-MHD is implemented as a \emph{second particle dataset plus a second propagator}, not as a mode of the hydro propagator. All MHD-specific code lives in two places:
+MHD is implemented as a second particle dataset plus a second propagator, not as a mode of the hydro propagator. All MHD-specific code lives in two places:
 
 \begin{verbatim}
 sph/include/sph/magneto_ve/           kernel layer (ijLoop functors, CPU/GPU drivers)
@@ -212,7 +213,7 @@ Everything else is a small hook into shared code: \texttt{simulation\_data.hpp} 
 
 A separate propagator was a deliberate choice. Field lists and halo-exchange tuples are compile-time constructs in SPH-EXA, so a runtime ``is $\mathbf{B}$ allocated'' switch could not change what \texttt{sync()} exchanges or what gets allocated. The two pipelines also differ in the middle --- MHD replaces the gradient and momentum kernels and inserts an induction step --- and the codebase's existing answer to physics variants is one propagator per physics (\texttt{std}, \texttt{ve}, \texttt{turb}, \dots). If unification is ever wanted, the viable route is compile-time: a \texttt{bool Magneto} template parameter on the hydro propagator with conditional field lists, the same pattern the MHD propagator already uses internally for its optional fields.
 
-The guiding convention throughout is: \emph{when in doubt, mirror the hydro file}. \texttt{magneto\_ve.hpp} mirrors \texttt{ve\_hydro.hpp}, \texttt{iad\_full\_divv\_curlv\_kern.hpp} mirrors \texttt{iad\_divv\_curlv\_kern.hpp}, and so on. Deviations from the hydro pattern are either bugs or carry a comment explaining why.
+The guiding convention throughout is to mirror the hydro equivalent. \texttt{magneto\_ve.hpp} mirrors \texttt{ve\_hydro.hpp}, \texttt{iad\_full\_divv\_curlv\_kern.hpp} mirrors \texttt{iad\_divv\_curlv\_kern.hpp}, and so on. Deviations from the hydro pattern are either bugs or carry a comment explaining why.
 
 \begin{table}[htbp]
 \centering
@@ -236,7 +237,7 @@ file in \texttt{magneto\_ve/} & contents \\
 \end{table}
 
 \subsection{Particle fields}
-
+\todo{note on full vel jacobian}
 \texttt{MagnetoData} carries 40 fields, registered in the propagator in three groups:
 
 \begin{itemize}
@@ -277,6 +278,7 @@ followed in \texttt{integrate()} by the time-step reduction, position update, \t
 Keeping the exchange count at four relies on invariants worth knowing before modifying the pipeline: $\mathbf{B}$ rides along in exchange 2 because it is conserved and already final there; \texttt{psi\_ch} and the $\mathbf{B}$ Jacobian are final before \texttt{MomentumAndEnergy}, which touches neither, so no exchange is needed between the last two kernels; and \texttt{divB}, \texttt{curlB} and their companions are only ever read on the $i$ side and are deliberately \emph{never} exchanged. A new kernel that reads any of these at $j$ must add the field to an exchange --- the failure mode is silently wrong halo values, not a crash.
 
 \subsection{Kernel-level notes}
+\label{sec:appendix_kernel_notes}
 
 \subsubsection*{Fused gradient loop}
 The induction equation (Eq.~\ref{eq:induction_code}) needs the full velocity Jacobian $\mathbf{J}_v$, which plain hydro does not compute. Rather than adding a third gradient pass, the IAD and velocity-gradient computations are fused into one neighbor loop. This works because the IAD matrix multiply commutes with the neighbor sum: $\mathcal{C}$ is constant per particle $i$, so the interaction accumulates raw sums and the postamble applies $\mathcal{C}$ afterwards --- letting the same postamble both \emph{produce} the IAD matrix and \emph{consume} it for the Jacobian in a single pass. A second loop computes the $\mathbf{B}$ gradients. Fusing all three into one loop was tried and reverted (see below).

@@ -1,38 +1,61 @@
 \section{Performance and scaling analysis}
 \label{sec:performance}
 
-In this chapter we conduct a small performance and scaling analysis of the new MHD implementation in SPH-EXA. The first goal is to verify that parallel scaling efficiency is upheld compared to the pure hydrodynamic code, which will serve as a baseline here. Secondly, we inspect the relative computational overhead and ensure that we observe it in places where it is expected and to a degree that is reasonable. We also compare the performance of the two main resistivity schemes discussed throughout this paper and quantify the additional overhead induced through reconstruction by ARSLR (§\ref{sec:ar}). 
+In this chapter we conduct a performance and scaling analysis of the new MHD implementation in SPH-EXA. The first goal is to verify that parallel scaling efficiency is upheld compared to the pure hydrodynamic code, which will serve as a baseline here. Secondly, we inspect the relative computational overhead and ensure that we observe it in places where it is expected and to a degree that is reasonable. We also compare the performance of the two main resistivity schemes discussed throughout this paper and quantify the additional overhead induced through reconstruction by ARSLR (§\ref{sec:ar}). 
 
-In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in execution time per iteration (time step). This way, the effect of the MHD-specific physical time step constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. Contrary to the numerical tests in §\ref{sec:numerical_tests} we use regular lattices instead of glass blocks to more finely control the exact amount of particles. This is important when it comes to setting up weak scaling experiments. 
+In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in execution time per iteration (time step). This way, the effect of the MHD-specific physical time step constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. For each data point we run twelve iterations, exclude the first as warm-up, and report the median of the remaining eleven.
+
+Contrary to the numerical tests in §\ref{sec:numerical_tests} we use regular lattices instead of glass blocks to more finely control the exact amount of particles. This is important when it comes to setting up weak scaling experiments. 
 
 All runs are performed on the Euler cluster of ETH Zürich, using nVidia RTX 4090 GPUs with 24 GB of VRAM each. 
 
 
+Both the strong and weak scaling analysis are primarily intended for quick verification of the implementation. A proper extensive study would use a much larger allocation with thousands of nodes (as was done in \cite{Cavelan2020}) and more precisely tailor problems to the available architecture. This is however out of scope for this project. 
+
 \subsection{Strong scaling analysis}
+\label{sec:strong_scaling}
+Figure \ref{fig:strong_scaling} shows the strong scaling results using a fixed problem size of $N=400^3$ particles and $N_\mathrm{GPUs} \in {4,8,16,32}$. Around $N_\mathrm{GPUs}=32$ it becomes noticeable how we start to run out of work for additional GPUs and the communication overhead slowly takes over. 
+
+The MHD extension shows the same trend as the pure hydro baseline, looking slightly less efficient at $N_\mathrm{GPUs}=16$, where we jump from a single node with 8 GPUs to two nodes. Inspecting the individual kernels shows that this gap lies entirely in halo-exchange time. 
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\linewidth]{img/Perf/thesis_strong_scaling.pdf}
-    \caption{Strong scaling with $N=400^3$ (64M particles).}
+    \caption{Strong scaling with $N=400^3$ (64M particles). First panel measures the speedup in total iteration time relative to 4 GPUs ($S=T(4)/T(N_\mathrm{GPUs})$). Second panel displays parallel efficiency, i.e. the actual speedup divided by the \textit{ideal} speedup.}
     \label{fig:strong_scaling}
 \end{figure}
 
 \subsection{Weak scaling analysis}
+Figure \ref{fig:weak_scaling} shows the results of a weak scaling experiment. Here the problem size is increased together with $N_\mathrm{GPUs}$ to keep a constant amount of work of $N=150^3\approx 3.3M$ particles per GPU. %The ratio $N/N_\mathrm{GPUs}$ only varies $\pm 0.1\%$ between runs. 
+
+Our numbers appear to show super-linear efficiency, climbing above $100\%$ at 2 and 16 GPUs. This however is an effect of the Cornerstone octree tree traversal (specifically its neighbor-search stack depth), which varies depending on exact particle counts, and is obviously not a real scaling effect.
+
+Despite the spiky behavior, this still allows us to verify that the MHD implementation closely follows its hydro baseline, with the same efficiency gap at $N_\mathrm{GPUs}=16$ as explained above (§\ref{sec:strong_scaling}). 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.5\linewidth]{img/Perf/thesis_weak_scaling.pdf}
+    \includegraphics[width=0.6\linewidth]{img/Perf/thesis_weak_scaling.pdf}
     \caption{Weak scaling with $\sim 3.3M$ particles per GPU. The apparent super-linear efficiency is due to tree traversal effects, visible at this rather low number of GPUs and particles, and not a real scaling effect.}
     \label{fig:weak_scaling}
 \end{figure}
 
 \subsection{Kernel overhead comparison}
-MHD: full velocity jacobian, extra fields. extra divB computation. SLR: extra B jacobian. tiny difference in slr due to node-to-node noise. 
+\label{sec:kernel_comparison}
+
+In Figure \ref{fig:kernel_comparison} we inspect the per-iteration runtime of individual kernels. The only MHD-exclusive kernel is the \textit{induction and dissipation} kernel which copmutes the induction equation, divergence cleaning terms and artificial resistivity. The additional linear reconstruction which SLR performs in this kernel results in the visible $17\%$ runtime increase compared to a05. 
+
+The \textit{IAD} kernel (see §\ref{sec:iad} Integral approach to derivatives) calculates all derivatives ($\nabla \cdot \mathbf{v}$, $\nabla \times \mathbf{v}$ and the velocity Jacobian consumed by AVSLR). The MHD extension requires an additional neighbor pass to calculate the extra derivatives of the magnetic field ($\nabla \cdot \mathbf{B}$, $\nabla \times \mathbf{B}$ and the Jacobian of the magnetic field consumed by ARSLR). Therefore the increase of almost exactly $100\%$ is expected if the neighbor loops are not fused. \todo{reference appendix and insert compilation problem there} 
+
+In \textit{momentum and energy} lie the magnetic pressure contributions \eqref{eq:maxwell_stress} as well as the tensile instability correction \eqref{eq:fdivb} requiring $+28\%$. 
+
+Finally, halo exchange time increases due to the additional fields required by MHD: The magnetic field itself, the cleaning term $\psi/c_h$ \eqref{eq:psi_evolution} and the three additional components in the full 9-field velocity Jacobian instead of a compressed 6-component version used by hydro. Using SLR instead of a05 comes with another slight from the 9-field Jacobian of the magnetic field. 
+
+Overall, one complete SPMHD iteration in SPH-EXA takes around $60\%$ more time than a pure SPH iteration. 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.9\linewidth]{img/Perf/thesis_kernel_comparison.pdf}
-    \caption{Caption}
+    \caption{Per-kernel comparison of runtime between hydro baseline and MHD extension using a05 and SLR resistivity schemes. $N=400^3$ on 4 GPUs. The tiny differences seen between SLR and a05 in some columns (e.g. XMass, Volume Elements, Momentum \& Energy) is due to node-to-node noise in the experiment and not of relevance.}
     \label{fig:kernel_comparison}
 \end{figure}
 
