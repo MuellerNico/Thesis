@@ -109,9 +109,9 @@ The adiabatic index is $\gamma = 2$. We use constant AV with $\alpha = 1.0$\todo
 
 Figure \ref{fig:brio_wu} shows the results after $t=0.2$. Particles within the active middle region $x\in [-1,1]$ are projected onto the $x$-axis. Additionally to the L1 error, each panel shows an \texttt{osc}-error, intended to measure post-shock ringing. It is defined as the maximum deviation from the reference solution $max(|q-q_{ref}|)$, but restricted to flat plateau areas of the solution where $|\frac{dq_{ref}}{dx}|<0.2$. Additionally, these intervals are trimmed by $0.03$ off each end to exclude smeared shock-fronts. This metric is to be viewed with care as it is dominated by outliers. Both errors are calculated only over the window visible in Figure \ref{fig:brio_wu}.
 
-SLR wins out slightly over the baseline in most panels. Notably, showing slightly \textit{less} post-shock oscillation in $B_y$ while simultaneously also showing s\textit{less} resistive heating $\dot{u}_{diss}$\eqref{eq:res_heating}.
+SLR wins out slightly over the baseline in most panels. Notably, showing slightly \textit{less} post-shock oscillation in $B_y$ while simultaneously also showing \textit{less} resistive heating $\dot{u}_{diss}$\eqref{eq:res_heating}.
 
-The results can be compared to Fig. 4 in Wissing \& Shen (2020)\cite{WissingShen2020}, Fig. 28/29 in Price et al. (2018)\cite{Price2018} and Fig. 2 Hopkins \& Raives (2015)\cite{Hopkins2015}. Divergence errors show a higher floor, even before the shock-front, likely due to the velocity noise floor discussed at the beginning of §\ref{sec:numerical_tests}. 
+The results can be compared to Fig. 4 \cite{WissingShen2020}, Fig. 28/29 \cite{Price2018} and Fig. 2 \cite{Hopkins2015}. Divergence errors show a higher floor, even before the shock-front, likely due to the velocity noise floor discussed at the beginning of §\ref{sec:numerical_tests}. 
 
 Some hydro artifacts remain despite constant AV, such as the pressure spike around $x=0.1$ which also appears in a pure hydrodynamic run with magnetic forces disabled. 
 
@@ -215,7 +215,7 @@ python sphexa/scripts/plot_slice.py out/9533596_SLR_avswitches/dump.h5 0 out/953
 \subsection{Orszag-Tang vortex}
 The Orszag-Tang vortex \cite{Orszag1979} tests how well MHD codes handle transition to super-sonic turbulence  involves the development of super-sonic turbulence and multi-shock regimes where different shocks collide. It is therefore primarily a robustness and stability test. 
 
-A thin periodic box of $L = (1, 1, \frac{30}{n_x})$ is initialized with resolutions $[n_x,n_x,30]$ with $n_x\in\{120,240,510\}$. The initial velocity field and the doubly periodic magnetic field are set to:
+A thin periodic box of $L = (1, 1, \frac{30}{n_x})$ is initialized with resolutions $[n,n,30]$ with $n\in\{120,240,510\}$. The initial velocity field and the doubly periodic magnetic field are set to:
 
 $ [v_x, v_y, v_z] = v_0[-\sin(2\pi (y - y_{min})), \sin(2\pi (x - x_{min})), 0]$\\ 
 $[B_x, B_y, B_z] = B_0[-\sin(2\pi (y - y_{min})), \sin(4\pi (x - x_{min})), 0],$
@@ -225,6 +225,8 @@ where $v_0=1$ and $B_0=1/\sqrt{4\pi}$. The initial plasma beta $\beta_0 = 10/3$ 
 Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions. Comparing to Fig. 5 in Wissing \% Shen (2020) \cite{WissingShen2020} and Fig. 32 in Price et al. 2018 \cite{Price2018}, we manage to capture the overall structure well. With increasing resolution the shocks and the trapped high-density filament become visibly more defined. At $t=1$ \todo{turb stage looks different}
 
 Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared with Fig. 33 in Price et al. (2018) \cite{Price2018}. We get a qualitatively and quantitatively very similar profile. With increasing resolution, the shock fronts become sharper. 
+
+Figure \ref{fig:ot_divb} shows the behavior of the divergence error \eqref{eq:divb_error}. Both the mean and maximum error stay bounded, with the mean staying below $10^{-2}$, which was presented by \cite{WissingShen2020} as the preferable upper limit. It is important that we see a clear plateau emerging around $t=1.3$. This means the cleaning scheme is doing its job. If the error would continue to climb, the cleaning parameters would have to be adjusted to make it more aggressive, which in turn could hurt the time step constraint (see §\ref{sec:divb_cleaning}). In the last panel of Figure \ref{fig:ot_divb} we see how the divergence error successfully declines with increasing resolution. 
 
 % Robustness in multi-shock regime. Stability and divB cleaning (longer sim time?) when shocks collide. Density/pressure structure linecut vs reference. total energy drift. 
 
@@ -236,7 +238,7 @@ Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared wit
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step1_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000_120.pdf}
     % \includegraphics[width=0.49\linewidth]{img/OT/slice_rho_step2_z+0.0000.pdf}
-    \caption{OT vortex at times t=0.5 and t=1.0. nx=120 (left), nx=240 (right). z=0}
+    \caption{Results of the Orszag-Tang vortex. Density slices at $t=0.5$ (\textit{top}) and $t=1.0$ (\textit{bottom}). For three increasing resolutions $n_x\in\{120,240,510\}$ left to right.}
     \label{fig:ot_slices}
 \end{figure}
 
@@ -251,13 +253,13 @@ Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared wit
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{img/OT/compare_divb.pdf}
-    \caption{OT: divB error. TODO replace with run up to t=3 to show plateau convergence}
+    \caption{Orszag-Tang vortex: Divergence error analysis. The first two panels show the mean divergence error $\langle\varepsilon_{\mathrm{div}B}\rangle$ and the maximum divergence error $\max (\varepsilon_{\mathrm{div}B})$ over time for three resolutions. In the last panel we see convergence of the time averaged mean divergence error with increasing resolution $n_x$.}
     \label{fig:ot_divb}
 \end{figure}
 
 % python sphexa/scripts/plot_constants_compare.py divb out/12686005_OT_120_t3/ out/12668681_OT_240_t3/ out/12685706_OT_510_t3/ --labels nx=120,nx=240,nx=510 --clean
 
-\todo[inline]{decreasing divB error. maybe emag. discuss the "beads" mentioned in reference papers?}
+\todo[inline]{discuss the "beads" mentioned in reference papers?}
 % python sphexa/scripts/plot_slice.py out/9542508_OT_120/dump.h5 1 out/9542597_OT_240/dump.h5 1 out/9549515_OT_510/dump.h5 1 out/9542508_OT_120/dump.h5 2 out/9542597_OT_240/dump.h5 2 out/9549515_OT_510/dump.h5 2 --cmap gist_heat --labels nx=120 nx=240 nx=510 --label-time --clean --resolution 512
 
 \subsection{MHD rotor}
