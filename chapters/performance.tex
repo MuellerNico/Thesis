@@ -3,20 +3,43 @@
 
 In this chapter we conduct a small performance and scaling analysis of the new MHD implementation in SPH-EXA. The first goal is to verify that parallel scaling efficiency is upheld compared to the pure hydrodynamic code, which will serve as a baseline here. Secondly, we inspect the relative computational overhead and ensure that we observe it in places where it is expected and to a degree that is reasonable. We also compare the performance of the two main resistivity schemes discussed throughout this paper and quantify the additional overhead induced through reconstruction by ARSLR (§\ref{sec:ar}). 
 
-In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in execution time per iteration (time step). This way, the effect of the MHD-specific physical time step constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. 
+In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in execution time per iteration (time step). This way, the effect of the MHD-specific physical time step constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. Contrary to the numerical tests in §\ref{sec:numerical_tests} we use regular lattices instead of glass blocks to more finely control the exact amount of particles. This is important when it comes to setting up weak scaling experiments. 
 
-All runs are performed on nVidia RTX 4090 GPUs with 24 GB of VRAM each. 
+All runs are performed on the Euler cluster of ETH Zürich, using nVidia RTX 4090 GPUs with 24 GB of VRAM each. 
+
 
 \subsection{Strong scaling analysis}
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{img/Perf/thesis_strong_scaling.pdf}
+    \caption{Strong scaling with $N=400^3$ (64M particles).}
+    \label{fig:strong_scaling}
+\end{figure}
 
 \subsection{Weak scaling analysis}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{img/Perf/thesis_weak_scaling.pdf}
+    \caption{Weak scaling with $\sim 3.3M$ particles per GPU. The apparent super-linear efficiency is due to tree traversal effects, visible at this rather low number of GPUs and particles, and not a real scaling effect.}
+    \label{fig:weak_scaling}
+\end{figure}
+
+\subsection{Kernel overhead comparison}
+MHD: full velocity jacobian, extra fields. extra divB computation. SLR: extra B jacobian. tiny difference in slr due to node-to-node noise. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{img/Perf/thesis_kernel_comparison.pdf}
+    \caption{Caption}
+    \label{fig:kernel_comparison}
+\end{figure}
 
 % Different minDt but that's physics/numerics and not code performance. 
 
 % MHD needs full velocity jacobian, doesn't compress into 6 fields. SLR needs 9 fields of B jacobian. Using template programming to not allocate if using constant scheme. 
-        
+
 % The apparent super-linear efficiency at 2 and 16 GPUs is a focus-tree traversal artifact, not a real scaling effect. In weak scaling, the total particle count doubles at each GPU step (1→2→4→8→16→32), which cycles through three distinct octree alignment bands every factor of 8 — the cstone focus tree's maxStackNc (neighbor-search stack depth) follows a repeating pattern of 36→27→18→36→27→18. Configs landing in the maxStackNc=27 band (n=189 at 2 GPUs, n=378 at 16 GPUs) have \~40\% lower per-particle traversal cost despite identical neighbor counts (93 for all configs), while strong scaling is unaffected because the total particle count stays fixed.
 
 % ijloop fusion is likely a solid win on the default and could backfire in the clustered neighborhood
