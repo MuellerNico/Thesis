@@ -9,10 +9,9 @@
 
 \section{Usage instructions}
 
-This appendix is a quick guide for running the MHD part of SPH-EXA. It assumes familiarity with the hydro side of the code: building, launching, glass blocks, HDF5 dumps and restarts all work exactly as before. Only what is specific to MHD is described here. The code is available in the \href{https://github.com/MuellerNico/sphexa/}{\textbf{GitHub fork}}.
+This appendix is a quick guide for running the MHD part of SPH-EXA. It assumes familiarity with running hydrodynamic simulations with SPH-EXA: building, launching, glass blocks, HDF5 dumps and restarts all work exactly as before. Only what is specific to MHD is described here. The code is available in the \href{https://github.com/MuellerNico/sphexa/}{\textbf{GitHub fork}}.
 
-The MHD extension adds two new propagators (\texttt{magneto-ve} and \texttt{magneto-turb-ve}), a set of MHD test cases, additional command-line flags, and a group of particle fields that are written
-to the HDF5 dumps under a \texttt{magneto::} prefix. Nothing else in the workflow changes.
+The MHD extension adds two new propagators (\texttt{magneto-ve} and \texttt{magneto-turb-ve}), a set of MHD test cases, additional command-line flags, and a group of particle fields that are written to the HDF5 dumps under a \texttt{magneto::} prefix. Nothing else in the workflow changes.
 
 \subsection{Running a simulation}
 
@@ -60,7 +59,7 @@ The resolution flag \texttt{-n} keeps its usual meaning of the effective number 
 Just like with the hydro side, test-case parameters (physical constants) can be overridden by passing an HDF5 settings file after a colon (e.g. \texttt{-{}-init mhd-loop:settings.h5}).
 
 \subsection{Command-line options}
-The MHD extension adds the \texttt{-{}-resistivity} flag. It accepts:
+The MHD extension adds the \texttt{-{}-resistivity} flag. It accepts: \todo{remove SLR(B), switch options if not supported in final build}
 
 \begin{center}
 \begin{tabular}{@{}l p{0.72\linewidth}@{}}
@@ -196,6 +195,8 @@ Implementation-level limitations (fixed cleaning parameters, global time steppin
 \section{Details of code implementation}
 \label{sec:appendix_implementation}
 
+\todo[inline]{Revise this section. Just drafted for now}
+
 This appendix summarizes the software side of the MHD extension, aimed at the SPH-EXA team and anyone extending the code. The numerical schemes themselves are derived in Section~\ref{sec:theory}; here only their mapping onto the code is described. Familiarity with the hydro side (the \texttt{ve} propagator, the \texttt{ijLoop} kernel framework, \texttt{FieldList}, the cstone domain) is assumed. The code is available in the \href{https://github.com/MuellerNico/sphexa/}{\textbf{GitHub fork}}.
 
 \subsection{Architecture}
@@ -248,7 +249,7 @@ Precision follows the hydro types: double for $\mathbf{B}$ and its derivatives, 
 
 \subsection{Configuration}
 
-The propagator is \texttt{MagnetoHydroProp<bool SLR, bool MhdSLR>} with two independent compile-time flags: \texttt{SLR} is the hydro slope-limited reconstruction in the artificial viscosity (Section~\ref{sec:slr}), shared with the hydro propagator; \texttt{MhdSLR} is the reconstruction of $\mathbf{B}$ in the artificial resistivity (Section~\ref{sec:ar}). Because the choice selects a template specialization rather than a runtime branch, \texttt{-{}-resistivity} is parsed in \texttt{sphexa.cpp} \emph{before} the propagator factory runs, and all four flag combinations are instantiated. At startup the propagator prints one line per active flag (``SLR is activated'', ``SLR resistivity is activated''); both are needed to identify a run's configuration from its log.
+The propagator is \texttt{MagnetoHydroProp<bool SLR, bool MhdSLR>} with two independent compile-time flags: \texttt{SLR} is the hydro slope-limited reconstruction in the artificial viscosity (Section~\ref{sec:slr}), shared with the hydro propagator; \texttt{MhdSLR} is the reconstruction of $\mathbf{B}$ in the artificial resistivity (Section~\ref{sec:ar}). Because the choice selects a template specialization rather than a runtime branch, \texttt{-{}-resistivity} is parsed in \texttt{sphexa.cpp} \emph{before} the propagator factory runs, and all four flag combinations are instantiated. At startup the propagator prints one line per active flag (``SLR is activated'', ``SLR resistivity is activated'').
 
 \subsection{The time step}
 
@@ -290,16 +291,16 @@ One choice here looks wrong at first sight but is intentional: with reconstructi
 \subsubsection*{Time integration}
 \texttt{integrateMagneticQuantities} performs the Adams--Bashforth update of $\mathbf{B}$ and $\psi$. It is a per-particle pass with no neighbor access, structured exactly like hydro's \texttt{computePositions}, and is the reference to copy for any future per-particle MHD pass.
 
-\subsubsection*{A known divergence from hydro}
-The MHD \texttt{divv}/\texttt{curlv} include the grad-h factor ($1/\Omega$) in their normalization; the hydro versions do not. Both feed the AV switches and Balsara limiters, so artificial viscosity behaves slightly differently between the two propagators, and \texttt{sedov} vs.\ \texttt{sedov-magneto} is not an apples-to-apples comparison on the AV side. The grad-h-consistent form is arguably the correct one; unifying the two is left as an upstream decision.
+% \subsubsection*{A known divergence from hydro}
+% The MHD \texttt{divv}/\texttt{curlv} include the grad-h factor ($1/\Omega$) in their normalization; the hydro versions do not. Both feed the AV switches and Balsara limiters, so artificial viscosity behaves slightly differently between the two propagators, and \texttt{sedov} vs.\ \texttt{sedov-magneto} is not an apples-to-apples comparison on the AV side. The grad-h-consistent form is arguably the correct one; unifying the two is left as an upstream decision.
 
-\subsection{Performance characteristics}
+% \subsection{Performance characteristics}
 
-The details are in Section~\ref{sec:performance}; what a developer should know is the cost model. An MHD step costs about $1.5\times$ a hydro step, but the magnetosonic CFL constraint makes the MHD time step roughly $100\times$ smaller, so time-to-solution is dominated by step count, not per-step cost --- per-step micro-optimization has little leverage.
+% The details are in Section~\ref{sec:performance}; what a developer should know is the cost model. An MHD step costs about $1.5\times$ a hydro step, but the magnetosonic CFL constraint makes the MHD time step roughly $100\times$ smaller, so time-to-solution is dominated by step count, not per-step cost --- per-step micro-optimization has little leverage.
 
-Within a step, \emph{neighbor-traversal count dominates}: fusing the IAD and velocity-gradient loops (three traversals down to two) cut that kernel's cost by the predicted third. Input-tuple width, by contrast, does not matter: removing 11 unused-per-pair fields from the induction kernel's tuple was measured as a null result, because the kernel is arithmetic-bound. The practical rule: anything that removes a traversal is worth doing; anything that only narrows a tuple is not, unless it also removes arithmetic.
+% Within a step, \emph{neighbor-traversal count dominates}: fusing the IAD and velocity-gradient loops (three traversals down to two) cut that kernel's cost by the predicted third. Input-tuple width, by contrast, does not matter: removing 11 unused-per-pair fields from the induction kernel's tuple was measured as a null result, because the kernel is arithmetic-bound. The practical rule: anything that removes a traversal is worth doing; anything that only narrows a tuple is not, unless it also removes arithmetic.
 
-There is also a hard compile-time limit: keep an \texttt{ijLoop} interaction's result tuple at or below ${\sim}18$ elements. The reverted three-way loop fusion produced a 33-wide result that pushed \texttt{nvcc}'s frontend past a two-hour build time-out, with the blow-up occurring only in the expensive neighborhood-mode instantiations --- so compile time must be checked on the full translation unit, never on a single pinned neighborhood mode.
+% There is also a hard compile-time limit: keep an \texttt{ijLoop} interaction's result tuple at or below ${\sim}18$ elements. The reverted three-way loop fusion produced a 33-wide result that pushed \texttt{nvcc}'s frontend past a two-hour build time-out, with the blow-up occurring only in the expensive neighborhood-mode instantiations --- so compile time must be checked on the full translation unit, never on a single pinned neighborhood mode.
 
 \subsection{Limitations}
 
