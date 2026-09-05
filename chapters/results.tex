@@ -126,6 +126,7 @@ Some hydro artifacts remain despite constant AV, such as the pressure spike arou
 
 
 \subsection{Magnetized Sedov blast}
+\label{sedov}
 
 In this magnetized blast wave we have a central, over-pressurized region which then expands preferentially along magnetic field lines instead of uniformly. This lets us i.a. test energy conservation under extreme pressure. 
 
@@ -150,9 +151,11 @@ Figure \ref{fig:sedov_metrics} shows that the conservation of total energy and t
     \centering
     \includegraphics[width=0.4\linewidth]{img/sedov/compare_etot.pdf}
     \includegraphics[width=0.4\linewidth]{img/sedov/compare_conv.pdf}
-    \caption{Magnetized Sedov blast: Conservation of energy and evolution of divB error over time for different resolutions. The left panel shows the normalized total energy. An average run with $250^3$ particles stays within less than $0.3\%$ deviation. The right panel shows how the time-averaged mean divergence error decreases with increasing linear resolution $N$.}
+    \caption{Magnetized Sedov blast: Conservation of energy and evolution of divB error over time for different resolutions. The left panel shows the normalized total energy. An average run with $250^3$ particles stays within less than $0.3\%$ deviation. The right panel shows how the time-averaged mean divergence error decreases with increasing resolution $n$.}
     \label{fig:sedov_metrics}
 \end{figure}
+
+\todo[inline]{$N\rightarrow n$ or $\sqrt[3]{N}$}
 
 \subsection{Current loop advection}
 \label{sec:MHD_loop}
