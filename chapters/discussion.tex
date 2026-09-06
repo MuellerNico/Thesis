@@ -1,22 +1,16 @@
 \section{Discussion}
-\todo[inline]{write discussion}
+\label{sec:discussion}
 
-In this Master Thesis, a complete implementation of ideal magnetohydrodynamics in SPH-EXA was presented. 
+In this thesis a complete implementation of ideal MHD in SPH-EXA was presented, verified and scaled. The verification suite reproduces the reference results of PHANTOM \cite{Price2018} and GASOLINE2 \cite{WissingShen2020} in structure and in the standard metrics: second-order convergence of the Alfvén wave, a bounded and resolution-convergent divergence error in all shock-dominated tests, energy conservation within $0.3\%$ in the magnetized Sedov blast, and a magnetized Kelvin-Helmholtz growth rate that responds to the field as expected. Where we fall short of the references, most visibly in the divergence error floor and in the advection loop, the cause is traceable to the velocity noise of glass initial conditions combined with the sinc6 kernel rather than to the MHD terms themselves. The MHD extension adds roughly $60\%$ to the cost of a hydro iteration, almost entirely in the expected places (a second derivative pass, a larger halo, the induction kernel), and follows the hydro baseline in strong and weak scaling. The $1600^3$ turbulence run demonstrates that the code is ready for production-scale MHD problems.
 
+\paragraph{Reconstruction-based resistivity.}
+ARSLR achieves what it was designed for: on the noisy Alfvén wave it preserves the resolved mode better than the $\alpha_B=0.5$ baseline while removing incoherent noise faster, on the advection loop and the rotor it reduces the resistive heating by a quarter to a half at unchanged structure and divergence error, and on the Brio-Wu shocktube it does not under-dissipate, showing slightly less post-shock ringing than the baseline. This removes the need for the global compromise of a reduced $\alpha_B$. The margins are however modest, and the tests in this suite do not strongly separate the schemes. In particular no test in the suite exposes a case where SLR under-dissipates and the steepness modulation of SLRB or SLRB2 would be needed; the shocktube is one-dimensional and every pair samples the true gradient direction, which is the most favorable case for the limiter. Whether the parallel-component limiter of \eqref{eq:vanleer} is sufficient for oblique current sheets in 3D remains open, and the honest position is that SLR should be used with SLRB2 as a safeguard until a test that discriminates between them exists.
 
+\paragraph{AV and AR cannot be separated.}
+A recurring observation across the suite is that the magnetic results are dominated by the choice of AV. The signal speed $v_{\mathrm{sig},B}$ turns any transverse velocity noise into resistivity, and the same noise injects magnetic energy through the induction equation. In the advection loop the AV scheme mattered far more than the AR scheme, and a constant, over-dissipative AV gave the best magnetic result. This suggests that for smooth-flow MHD applications a small constant floor of viscous dissipation, close to zero for AVSLR, may be a worthwhile compromise. It also suggests the converse: once SLR reliably identifies smooth regions, $\alpha_B$ could be raised above one to hit discontinuities harder without penalty elsewhere, subject to the diffusive time step constraint discussed in §\ref{sec:timeint}, which currently does not enter the Courant condition.
 
+\paragraph{No single best configuration.}
+There is no combination of AV and AR schemes that wins in every test. The practical conclusion is that the code should offer the options and that the user must know the problem being simulated. This has a software cost. Unused schemes still occupy GPU memory and halo bandwidth (the full velocity and magnetic Jacobians are the largest examples), and while template dispatch keeps the constant-coefficient schemes free of this overhead, the combinatorics of AV, AR and cleaning variants quickly become hard to maintain. Fusing the two derivative passes into a single neighbor loop, which would remove most of the $100\%$ overhead of the IAD kernel, is the most valuable next step on the performance side.
 
-
-Worth considering adding back in a minimal amount of dissipation (near zero for AVSLR) as a compromise for smooth flow MHD applications. 
-
-maybe no test for SLRB(2) to shine. shocktube limited. SLR maybe still underdissipates in relevant cases?
-
-No fit-all combination. Best to have options and knowledge about problem being tackled. -> Software challenge with not having unused halo exchanges and memory load on GPUs etc for unused schemes. Template coding gives some options, but gets messy quick. 
-
-Cranking up alphaB when using SLR to increase hitting at shock fronts even more. If SLR detects smooth regions consistently could be worth it. Have to consider timestep constraint. 
-
-AV and AR closely linked. Cannot separate. 
-
-That new paper using switches again. 
-
-Outlook on better limiter, constructed with separate aggregation
+\paragraph{Outlook.}
+On the numerical side, the most promising direction is a limiter that inspects the transverse field components separately from the parallel one, with a different aggregation than the scalar $F_{ab}$, since the component-wise variants tested here failed for lack of sensitivity at large neighbor counts rather than for a flaw in the idea. A verification case with an oblique, well-resolved current sheet would be needed to evaluate it. \todo{cite the recent paper returning to switches and position SLR relative to it} Beyond dissipation, the natural extensions are non-ideal MHD terms and a kernel and initial-condition setup that preserves lattices, which would remove the noise floor that currently limits several tests.
