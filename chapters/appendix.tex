@@ -112,7 +112,7 @@ iteration  ttot  minDt  etot  ecin  eint  egrav  linmom  angmom
 conservation can be monitored directly. The two divergence columns report the
 divergence error $\varepsilon_\mathrm{divB} = h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$, averaged over all particles and as a global maximum. \texttt{resHeating} is the instantaneous total heating rate produced by artificial resistivity. The trailing column is present only for the test cases that define one (RMS Mach number for turbulence, mode amplitude for Kelvin--Helmholtz).
 
-Note that the $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions. The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}, where the $\mathbf{B}$ field bleeds into the region outside the loop (where $\mathbf{B}$ is initially zero) during the first few iterations. You can always read the unnormalized \texttt{magneto::divB} from the HDF5 dump instead.
+Note that the $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions. The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}, where the $\mathbf{B}$ field bleeds into the region outside the loop (where $\mathbf{B}$ is initially zero) during the first few iterations. One can always read the unnormalized \texttt{magneto::divB} from the HDF5 dump instead.
 
 \subsection{Plotting}
 \todo{revise plotting subsection or remove}
@@ -122,13 +122,13 @@ Two python scripts are provided for everyday needs.
 python scripts/plot_constants.py path/to/constants.txt
 \end{verbatim}
 
-produces \texttt{constants\_diagnostics.pdf} next to the input file: A diagnostic dashboard showing panels with energy components, relative total-energy drift, linear and angular momentum, normalized magnetic energy, the mean and maximum divergence error, the time step, and the resistive heating rate together with its cumulative integral. The magnetic-energy. Appending this e.g. to a Slurm job after a simulation gives you a lot of information about your run at a single glance. 
+produces \texttt{constants\_diagnostics.pdf} next to the input file: A diagnostic dashboard showing panels with energy components, relative total-energy drift, linear and angular momentum, normalized magnetic energy, the mean and maximum divergence error, the time step, and the resistive heating rate together with its cumulative integral. The magnetic-energy. Appending this e.g. to a Slurm job after a simulation gives the user a lot of information about the run at a single glance. 
 
 \begin{verbatim}
 python scripts/plot_slice.py path/to/dump.h5 3 --field Bmag --cmap magma
 \end{verbatim}
 
-renders an SPH-interpolated 2D slice of the magnetic field magnitude in step 3 of the dump with the magma colormap. You can pass any field present in the dump (e.g. \texttt{magneto::curlB}) or an available derived field (see table \ref{tab:plot_slice_derived_fields}). A file may be followed by a step number (default: final step). Several files are tiled into a single figure sharing one color scale. The script includes many useful options, a selection is listed in table \ref{tab:plot_slice_cli_flags}. 
+renders an SPH-interpolated 2D slice of the magnetic field magnitude in step 3 of the dump with the magma colormap. Pass any field present in the dump (e.g. \texttt{magneto::curlB}) or an available derived field (see table \ref{tab:plot_slice_derived_fields}). A file may be followed by a step number (default: final step). Several files are tiled into a single figure sharing one color scale. The script includes many useful options, a selection is listed in table \ref{tab:plot_slice_cli_flags}. 
 
 \begin{table}[h]
 \setlength{\abovecaptionskip}{6pt}% space between tabular and caption (arxiv.sty resets this per-table)
@@ -233,7 +233,7 @@ file in \texttt{magneto\_ve/} & contents \\
     \item \emph{$\mathbf{B}$-gradient} (9): \texttt{dBxdx}\,\dots\,\texttt{dBzdz}, appended to the dependent list at compile time \emph{only} when SLR resistivity is active. Without it these fields are never allocated, computed, or exchanged.
 \end{itemize}
 
-Precision follows the hydro types: double for $\mathbf{B}$ and its derivatives, float for the Jacobians and diagnostics. In total MHD adds roughly 170 bytes per particle over hydro.
+Precision follows the hydro types: double for $\mathbf{B}$ and its derivatives, float for the Jacobians and diagnostics. In total MHD adds roughly 170 bytes per particle over hydro.\todo{quick note on duplicate divB field}
 
 \subsection{Configuration}
 
