@@ -35,6 +35,7 @@ The native MHD test cases are selected with \texttt{-{}-init}. Most of them requ
 block (\texttt{--glass}). All boxes are fully periodic. The quasi-2D tests use a thin slab in $z$ whose thickness is set automatically from the resolution.
 
 \begin{table}[htbp]
+\setlength{\abovecaptionskip}{6pt}% space between tabular and caption (arxiv.sty resets this per-table)
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
@@ -111,85 +112,71 @@ iteration  ttot  minDt  etot  ecin  eint  egrav  linmom  angmom
 conservation can be monitored directly. The two divergence columns report the
 divergence error $\varepsilon_\mathrm{divB} = h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$, averaged over all particles and as a global maximum. \texttt{resHeating} is the instantaneous total heating rate produced by artificial resistivity. The trailing column is present only for the test cases that define one (RMS Mach number for turbulence, mode amplitude for Kelvin--Helmholtz).
 
+Note that the $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions. The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}, where the $\mathbf{B}$ field bleeds into the region outside the loop (where $\mathbf{B}$ is initially zero) during the first few iterations. You can always read the unnormalized \texttt{magneto::divB} from the HDF5 dump instead.
+
 \subsection{Plotting}
-\todo{revise plotting subsection}
-Two scripts in \texttt{scripts/} cover most needs. Both are plain Python
-(\texttt{numpy}, \texttt{h5py}, \texttt{matplotlib}) and are usually called at the end of
-a job script.
-
-\subsubsection*{\texttt{plot\_constants.py} --- diagnostics dashboard}
+\todo{revise plotting subsection or remove}
+Two python scripts are provided for everyday needs.
 
 \begin{verbatim}
-python scripts/plot_constants.py out/123456/constants.txt
+python scripts/plot_constants.py path/to/constants.txt
 \end{verbatim}
 
-Produces \texttt{constants\_diagnostics.pdf} next to the input file: energy components,
-relative total-energy drift, linear and angular momentum, magnetic energy normalized to
-its initial value, the mean and maximum $\nabla\cdot\mathbf{B}$ error, the time step, and
-the resistive heating rate together with its cumulative integral. The magnetic-energy
-panel also shows the dissipation-only expectation
-$1 - \int \dot{E}_\mathrm{res}\,\mathrm{d}t / E_\mathrm{mag,0}$; the gap between the two
-curves is magnetic energy created by the ideal induction term. Use
-\texttt{--kind kh} to label the trailing column of a Kelvin--Helmholtz run correctly
-(default \texttt{turb}).
-
-\subsubsection*{\texttt{plot\_slice.py} --- 2D slices}
-
-Renders an SPH-interpolated slice of any field through the box:
+produces \texttt{constants\_diagnostics.pdf} next to the input file: A diagnostic dashboard showing panels with energy components, relative total-energy drift, linear and angular momentum, normalized magnetic energy, the mean and maximum divergence error, the time step, and the resistive heating rate together with its cumulative integral. The magnetic-energy. Appending this e.g. to a Slurm job after a simulation gives you a lot of information about your run at a single glance. 
 
 \begin{verbatim}
-python scripts/plot_slice.py dump.h5 -i                 # metadata + field list
-python scripts/plot_slice.py dump.h5 --field rho        # final step
-python scripts/plot_slice.py dump.h5 5 --field Bmag -l  # step 5, log scale
-python scripts/plot_slice.py dump.h5 --all --field Bmag -j 8
+python scripts/plot_slice.py path/to/dump.h5 3 --field Bmag --cmap magma
 \end{verbatim}
 
-A file may be followed by a step number (negative counts from the end, absent means the
-last step). Several files are tiled into a single figure sharing one color scale, which is
-the standard way to compare resolutions or dissipation schemes:
-
-\begin{verbatim}
-python scripts/plot_slice.py a.h5 b.h5 c.h5 --labels 128 256 512 --clean
-\end{verbatim}
-
-The most useful options are \texttt{--field}, \texttt{--axis}/\texttt{--pos} (slice plane;
-by default the box midplane normal to $z$), \texttt{-r} (grid resolution),
-\texttt{--cmap}, \texttt{-l} (log scale), \texttt{--vmin}/\texttt{--vmax},
-\texttt{--fieldlines} (streamplot overlay, using $\mathbf{B}$ by default),
-\texttt{--smooth} (widen the rendering kernel for a smoother picture),
-\texttt{--scatter} (skip the interpolation, fast preview), \texttt{-j} (parallel workers,
-pass \texttt{"\$SLURM\_CPUS\_PER\_TASK"} in a job script) and \texttt{--clean} (PDF output
-without title for use as a figure). \texttt{-h} lists the rest.
-
-Besides the raw datasets, the script understands derived fields computed on the fly:
+renders an SPH-interpolated 2D slice of the magnetic field magnitude in step 3 of the dump with the magma colormap. You can pass any field present in the dump (e.g. \texttt{magneto::curlB}) or an available derived field (see table \ref{tab:plot_slice_derived_fields}). A file may be followed by a step number (default: final step). Several files are tiled into a single figure sharing one color scale. The script includes many useful options, a selection is listed in table \ref{tab:plot_slice_cli_flags}. 
 
 \begin{table}[h]
+\setlength{\abovecaptionskip}{6pt}% space between tabular and caption (arxiv.sty resets this per-table)
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+CLI flag & description \\
+\midrule
+\texttt{-{}-field} & field to render (default: density) \\
+\texttt{-{}-cmap} & matplotlib colormap \\
+\texttt{-{}-axis} & slice plane (default: $z$) \\
+\texttt{-{}-pos} & slice position (default: box midplane) \\
+\texttt{-{}-resolution} & grid/image resolution \\
+\texttt{-{}-all} & plot all steps in dump \\
+\texttt{-{}-log} & log scale \\
+\texttt{-{}-vmin}/\texttt{--vmax} & color scale limits \\
+\texttt{-{}-fieldlines} & streamplot overlay (uses $\mathbf{B}$ by default) \\
+\texttt{-{}-scatter} & scatter instead of interpolation (faster) \\
+\texttt{-{}-clean} & cleaner PDF output with serif font \\
+\texttt{-{}-help} & list remaining options \\
+\bottomrule
+\end{tabular}
+\caption{Selection of useful CLI flags in \texttt{plot\_slice.py}.}
+\label{tab:plot_slice_cli_flags}
+\end{table}
+
+\begin{table}[h]
+\setlength{\abovecaptionskip}{6pt}% space between tabular and caption
 \centering
 \begin{tabular}{@{}ll@{}}
 \toprule
 name & quantity \\
 \midrule
-\texttt{Bmag}, \texttt{vmag}       & $|\mathbf{B}|$, $|\mathbf{v}|$ \\
-\texttt{Emag}, \texttt{Pmag}       & magnetic energy density, magnetic pressure \\
-\texttt{KE}                        & kinetic energy density \\
-\texttt{curlBmag}                  & $|\nabla \times \mathbf{B}|$ \\
-\texttt{divBerr}, \texttt{log\_divBerr} & $h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$ (and its $\log_{10}$) \\
-\texttt{Bphi}, \texttt{Bperp}, \texttt{Bperp\_rel} & loop-frame decomposition for the \texttt{mhd-loop} test \\
+\texttt{Bmag} & $|\mathbf{B}|$ \\
+\texttt{vmag} & $|\mathbf{v}|$ \\
+\texttt{Emag} & $B^2/2$  \\
+\texttt{Pmag} & $B^2/(2\mu_0)$ \\
+\texttt{KE} & $0.5 \rho v^2$ \\
+\texttt{curlBmag} & $|\nabla \times \mathbf{B}|$ \\
+\texttt{divBerr} & $h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|$  \\
+\texttt{log\_divBerr} & $\log_{10} (h\,|\nabla\cdot\mathbf{B}|/|\mathbf{B}|)$ \\
 \bottomrule
 \end{tabular}
 \caption{Derived fields available to \texttt{plot\_slice.py}. \texttt{-i} lists those
 resolvable from a given dump.}
+\label{tab:plot_slice_derived_fields}
 \end{table}
 
-Both scripts only need the dump and are independent of the simulation build, so they can
-be run on a login node or locally.
-
-\subsection{Caveats}
-\begin{itemize}
-    \item \textbf{The $\nabla\cdot\mathbf{B}$ diagnostic is unreliable for tests with $\mathbf{B} \approx 0$ regions.} The divergence error is normalized by $|\mathbf{B}|$. Particles with exactly $\mathbf{B} = 0$ are excluded, but near-zero ones are not. So in regions with $\mathbf{B} \approx 0$ it is dominated by noise and can be arbitrarily large and corrupt both the maximum and mean divergence error. This affects in particular \texttt{mhd-loop}. You can instead read the unnormalized \texttt{magneto::divB} from the dump.
-\end{itemize}
-
-Implementation-level limitations (fixed cleaning parameters, global time stepping, untested regimes) are collected in Appendix~\ref{sec:appendix_implementation}.
 
 \newpage
 

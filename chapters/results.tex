@@ -117,8 +117,8 @@ Some hydro artifacts remain despite constant AV, such as the pressure spike arou
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{img/Brio-Wu/shocktube_compare_step2.pdf}
-    \caption{Results of Brio-Wu shocktube. Showing 9 metrics in different panels, including L1 error and \texttt{osc}-error (see §\ref{sec:brio_wu}). The figure shows the active region of the shock after $t=0.2$. The reference solution is shown as a solid black line while the SLR and a05 AR schemes are scattered as orange and blue dots respectively.}
+    \includegraphics[width=\linewidth]{img/Brio-Wu/shocktube_compare_step2.pdf}
+    \caption{Results of Brio-Wu shocktube: Active region of the shock after $t=0.2$. Particles within $2\bar{h}$ ($\bar{h}$ the median smoothing length) of the box-axis are plotted against their $x$ position. The reference solution is shown as a solid black line. We show nine metrics in different panels, including their L1 error and \texttt{osc}-error (see §\ref{sec:brio_wu}) where applicable.}
     \label{fig:brio_wu}
 \end{figure}
 
@@ -187,7 +187,7 @@ With this knowledge in mind, Figure \ref{fig:loop_ar_comp} uses constant AV to m
     % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSW_slice_Bmag_step3_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AVSLR_slice_Bmag_step3_z+0.0000.pdf}
     % \includegraphics[width=0.49\linewidth]{img/MHD-Loop/AV_slice_Bmag_step3_z+0.0000.pdf}
-    \includegraphics[width=\linewidth]{img/MHD-Loop/slice_Bmag_step0_z+0.0000_panels.pdf}
+    \includegraphics[width=0.8\linewidth]{img/MHD-Loop/slice_Bmag_step0_z+0.0000_panels.pdf}
     \caption{Results of the MHD advection loop. Density slices of the magnetic field magnitude $|B|$: Initial condition (\textit{top left}) and results after t=20 periods using ARSLR together with three different AV schemes: AVSW (\textit{top right}), AVSLR (\textit{bottom left}) and constant AV $\alpha=1.0$ (\textit{bottom right}). Constant a05 with $\alpha_B=0.5$ (Wissing form) gives almost identical results compared to ARSLR. The dominant factor in how well the loop structure is preserved is how aggressively AV schemes smooth velocity noise $\delta v$ inherent to the flow.}
     \label{fig:loop_av_comp}
 \end{figure}
@@ -244,8 +244,8 @@ Figure \ref{fig:ot_divb} shows the behavior of the divergence error \eqref{eq:di
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
-    \includegraphics[width=0.49\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
+    \includegraphics[width=0.4\linewidth]{img/OT/linecut_p_step1_x_y+0.3125_z+0.0000.pdf}
+    \includegraphics[width=0.4\linewidth]{img/OT/linecut_p_step1_x_y+0.4277_z+0.0000.pdf}
     \caption{Orszag-Tang vortex: Pressure slices at $t=0.5$ along $y=0.3125$ (\textit{left}) and $y=0.4277$ (\textit{right}) plane for different resolutions $n_x\in\{120,240,510\}$.}
     \label{fig:ot_linecuts}
 \end{figure}
@@ -329,11 +329,11 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
 %     out/12518185_KH_290c --labels hydro,MHD --clean --tmax 2.4
 % \end{verbatim}
 
-\todo[inline]{KH: field strength scan (beta series) to show the growth rate modification is monotonic in B? divB error and resistive heating for this test are not discussed yet.}
+\todo[inline]{KH: field strength scan (beta series) to show the growth rate modification is monotonic in B? divB error and resistive heating for this test are not discussed yet. MENTION NO AC (less phase mixing)}
 
 \subsection{Subsonic MHD turbulence}
 \label{sec:mhd_turb}
-
+\todo[inline]{paste turb section from notes}
 Application. DivB error + resistive heating. $1600^3$ particles (more than 4 billion). 
 
 Large-scale mean field, mildly super-alfvenic. $B=B_0\hat{z}$ with $B_0 = 0.15$. 
@@ -344,6 +344,8 @@ gamma=1.001
 \end{equation}
 
 Plasmabeta $\beta$. Sound speed $c=1$, Alfvén speed $v_A = \frac{|B|}{\sqrt{\mu_0 \rho}}$. $v_{RMS} = 0.3$ (subsonic). Sonic mach number $M = \frac{v_{RMS}}{c} = 0.3$. Alfvenic mach number $M_A = \frac{v_{RMS}}{v_A}=2$ (>1, super-alfvenic, turbulence dominates). 
+
+Timestep limit interesting. 
 
 \begin{figure}
     \centering

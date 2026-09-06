@@ -35,7 +35,7 @@ Despite the spiky behavior, this still allows us to verify that the MHD implemen
 \begin{figure}
     \centering
     \includegraphics[width=0.6\linewidth]{img/Perf/thesis_weak_scaling.pdf}
-    \caption{Weak scaling with $\sim 3.3M$ particles per GPU. The apparent super-linear efficiency is due to tree traversal effects, visible at this rather low number of GPUs and particles, and not a real scaling effect.}
+    \caption{Weak scaling with $\sim 3.3M$ particles per GPU. The apparent super-linear efficiency at certain points is due to tree traversal effects, visible at this rather low number of GPUs and particles, and not a real scaling effect.}
     \label{fig:weak_scaling}
 \end{figure}
 
@@ -44,11 +44,11 @@ Despite the spiky behavior, this still allows us to verify that the MHD implemen
 
 In Figure \ref{fig:kernel_comparison} we inspect the per-iteration runtime of individual kernels. The only MHD-exclusive kernel is the \textit{induction and dissipation} kernel which copmutes the induction equation, divergence cleaning terms and artificial resistivity. The additional linear reconstruction which SLR performs in this kernel results in the visible $17\%$ runtime increase compared to a05. 
 
-The \textit{IAD} kernel (see §\ref{sec:iad} Integral approach to derivatives) calculates all derivatives ($\nabla \cdot \mathbf{v}$, $\nabla \times \mathbf{v}$ and the velocity Jacobian consumed by AVSLR). The MHD extension requires an additional neighbor pass to calculate the extra derivatives of the magnetic field ($\nabla \cdot \mathbf{B}$, $\nabla \times \mathbf{B}$ and the Jacobian of the magnetic field consumed by ARSLR). Therefore the increase of almost exactly $100\%$ is expected if the neighbor loops are not fused. \todo{reference appendix and insert compilation problem there} 
+The IAD kernel (see §\ref{sec:iad} Integral approach to derivatives) calculates all derivatives ($\nabla \cdot \mathbf{v}$, $\nabla \times \mathbf{v}$ and the velocity Jacobian consumed by AVSLR). The MHD extension requires an additional neighbor pass to calculate the extra derivatives of the magnetic field ($\nabla \cdot \mathbf{B}$, $\nabla \times \mathbf{B}$ and the Jacobian of the magnetic field consumed by ARSLR). Therefore the increase of almost exactly $100\%$ is expected if the neighbor loops are not fused. \todo{reference appendix and insert compilation problem there} 
 
-In \textit{momentum and energy} lie the magnetic pressure contributions \eqref{eq:maxwell_stress} as well as the tensile instability correction \eqref{eq:fdivb} requiring $+28\%$. 
+In the momentum and energy kernel lie the magnetic pressure contributions \eqref{eq:maxwell_stress} as well as the tensile instability correction \eqref{eq:fdivb} adding up to $28\%$ overhead. 
 
-Finally, halo exchange time increases due to the additional fields required by MHD: The magnetic field itself, the cleaning term $\psi/c_h$ \eqref{eq:psi_evolution} and the three additional components in the full 9-field velocity Jacobian instead of a compressed 6-component version used by hydro. Using SLR instead of a05 comes with another slight from the 9-field Jacobian of the magnetic field. 
+Finally, halo exchange time increases due to the additional fields required by MHD: The magnetic field itself, the cleaning term $\psi/c_h$ \eqref{eq:psi_evolution} and the three additional components in the full 9-field velocity Jacobian instead of a compressed 6-component version used by hydro. Using SLR instead of a05 comes with another slight increase from the 9-field Jacobian of the magnetic field. 
 
 Overall, one complete SPMHD iteration in SPH-EXA takes around $60\%$ more time than a pure SPH iteration. 
 

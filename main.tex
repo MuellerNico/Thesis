@@ -24,27 +24,39 @@
     \small{Smoothed Particle Magnetohydrodynamics on Exascale computing systems}}
 
 \author{
-    Nicolas Pascal Guido Müller \\
+    Nicolas Pascal Guido Müller \vspace{0.3cm} \\
     D-MATH\\
     ETH Zürich\\
     \texttt{nicolmueller@ethz.ch} \\
 }
 
 \begin{document}
+
+% Add a bit of top space so the title block sits more centrally on the page
+\vspace*{2cm}
 \maketitle
-\vspace{4cm}
+
+\vspace*{\fill}
+\begin{flushright}
+{\textbf{Supervisors}\par}
+{Dr. Roger K\"appeli \\ ETH Z\"urich, D-MATH\par}
+{Dr. Rub\'en Cabez\'on \\ Universit\"at Basel, sciCORE\par}
+\end{flushright}
+\newpage
+\listoftodos 
+\newpage
 \input{chapters/abstract}
 \newpage
-% \setcounter{tocdepth}{2}
-% \tableofcontents
+\setcounter{tocdepth}{2}
+\tableofcontents
+\input{chapters/abbreviations}
 % \twocolumn
-\listoftodos 
 \newpage
 \input{chapters/introduction}
 \newpage
 \input{chapters/theory}
-\newpage
-\input{chapters/implementation}
+% \newpage
+% \input{chapters/implementation}
 \newpage
 \input{chapters/results}
 \newpage

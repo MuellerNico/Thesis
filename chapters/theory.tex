@@ -1,33 +1,31 @@
 % maybe remove all the Rosswog references? 
 
-\section{Theory}
+\section{Theory and numerical method}
 \label{sec:theory}
 
-This chapter establishes the mathematical and numerical foundation for the smoothed particle magnetohydrodynamics (SPMHD) implementation within SPH-EXA. We briefly introduce the core concepts of SPH, then develop the integral approach to derivatives (IAD) and generalized volume elements that characterize the ISPH formulation used in SPH-EXA. We extend this methodology to ideal magnetohydrodynamics, presenting the necessary dissipation mechanisms including artificial viscosity, resistivity, and conductivity, along with a divergence-cleaning scheme for numerical stability.
+This chapter establishes the mathematical and numerical foundation for the SPMHD implementation within SPH-EXA. We briefly introduce the core concepts of SPH and cover the integral approach to derivatives (IAD) and generalized volume elements that characterize the ISPH formulation used in SPH-EXA. We extend this methodology to ideal MHD, presenting the necessary dissipation mechanisms, along with a divergence-cleaning scheme for numerical stability.
 
 The equations presented here reflect the actual implementation in three spatial dimensions in the code, with explicit mention of where our discretization choices diverge from the reference works. 
 
-\subsection{Smoothed Particle Hydrodynamics}
+\subsection{Smoothed particle hydrodynamics}
 \label{sec:sph}
 
-Smoothed particle hydrodynamics (SPH) is a Lagrangian, mesh-free approach for solving equations of fluid dynamics \cite{Rosswog2009}. The domain is represented by an ensemble of macro-particles that carry local values of physical quantities (e.g. density, velocity, internal energy, etc.) serving as discrete interpolation points. The fluid is integrated in time by evolving these macro-particles. Rather than using finite differences on a grid, spatial fields are approximated through convolution with a smoothing kernel. %, and derivatives are obtained analytically from the known kernel form.
+SPH is a Lagrangian, mesh-free approach for solving equations of fluid dynamics \cite{Rosswog2009}. The domain is represented by an ensemble of macro-particles that carry local values of physical quantities (e.g. density, velocity, internal energy, etc.) serving as discrete interpolation points. The fluid is integrated in time by evolving these macro-particles. Rather than using finite differences on a grid, spatial fields are approximated through convolution with a smoothing kernel. %, and derivatives are obtained analytically from the known kernel form.
 
-\subsubsection*{Kernel approximation}
+% \subsubsection*{Kernel approximation}
 \label{sec:kernel_approximation}
 The kernel approximation of a function $f$ at position $\mathbf{r}$ is given by \cite{Rosswog2009}
 \begin{equation}
     \tilde{f}_h(\mathbf{r}) = \int f(\mathbf{r}') \, W(\mathbf{r} - \mathbf{r}', h) \, d^3 r'\,,
     \label{eq:kernel_approx}
 \end{equation}
-where $W$ is the smoothing kernel with smoothing length $h$ determining spatial resolution. The kernel must satisfy normalization ($\int W(\mathbf{r} - \mathbf{r}', h) \, d^3 r' = 1$), delta convergence ($\lim_{h \to 0} W(\mathbf{r} - \mathbf{r}', h) = \delta(\mathbf{r} - \mathbf{r}')$), have compact support and are chosen to be radially symmetric to ensure exact angular-momentum conservation \cite{Rosswog2009}. SPH-EXA uses the sinc-kernel family introduced with SPHYNX \cite{Cabezon2017}, defined through powers of the cardinal sine function. This approximation reproduces constant and linear functions exactly and is second-order accurate in $h$:
-\begin{equation}
-    \tilde{f}_h(\mathbf{r}) = f(\mathbf{r}) + \mathcal{O}(h^2)\,.
-    \label{eq:kernel_accuracy}
-\end{equation}
+where $W$ is the smoothing kernel with smoothing length $h$ determining spatial resolution. The kernel must satisfy normalization ($\int W(\mathbf{r} - \mathbf{r}', h) \, d^3 r' = 1$), delta convergence ($\lim_{h \to 0} W(\mathbf{r} - \mathbf{r}', h) = \delta(\mathbf{r} - \mathbf{r}')$), have compact support and is chosen to be radially symmetric to ensure exact angular-momentum conservation \cite{Rosswog2009}. SPH-EXA uses the sinc-kernel family introduced with SPHYNX \cite{Cabezon2017}, defined through powers of the cardinal sine function. This approximation reproduces constant and linear functions exactly and is second-order accurate in $h$.
+% \begin{equation}
+%     \tilde{f}_h(\mathbf{r}) = f(\mathbf{r}) + \mathcal{O}(h^2)\,.
+%     \label{eq:kernel_accuracy}
+% \end{equation}
 
-\todo[inline]{sinc6 kernel formula or description?}
-
-\subsubsection*{Particle approximation}
+% \subsubsection*{Particle approximation}
 
 We can discretize the integral approximation \eqref{eq:kernel_approx} by replacing $\rho(\mathbf{r}')\,d^3r'$ with the particle mass $m_b$ to get the SPH interpolation sum \cite{Rosswog2009}
 \begin{equation}
@@ -41,7 +39,7 @@ where $W_{ab} \equiv W(|\mathbf{r}_a - \mathbf{r}_b|, h_a)$ and the sum extends 
 \end{equation}
 Particle masses remain fixed, so mass conservation is exact by construction.
 
-\subsubsection*{Gradient evaluation}
+% \subsubsection*{Gradient evaluation}
 
 A key feature of SPH is that spatial derivatives are computed without finite-differences, but by differentiating \eqref{eq:sph_interp} analytically, using the known analytic form of the kernel gradient \cite{Rosswog2009}:
 \begin{equation}
@@ -56,7 +54,7 @@ Second derivatives employ the Brookshaw form \cite{Rosswog2009}, which avoids no
     \label{eq:brookshaw}
 \end{equation}
 
-\subsubsection*{The Euler equations in SPH}
+% \subsubsection*{The Euler equations in SPH}
 
 SPH solves the Lagrangian form of the Euler equations. The continuity equation (conservation of mass), the momentum equation (conservation of momentum) and the energy equation (conservation of energy) are: 
 \begin{align}
@@ -66,7 +64,8 @@ SPH solves the Lagrangian form of the Euler equations. The continuity equation (
 \end{align}
 where $\rho$ is density, $\mathbf{v}$ velocity, $P$ pressure, and $u$ specific internal energy. Self-gravity and other body forces are omitted for clarity.
 
-Direct discretization of \eqref{eq:euler_mom} using \eqref{eq:sph_grad} does not conserve momentum because the resulting pairwise forces are not antisymmetric \cite{Rosswog2009}. The standard remedy rewrites the pressure gradient using the product-rule identity $\nabla P / \rho = \nabla(P/\rho^2) \cdot \rho + (P/\rho^2)\nabla\rho$, yielding the symmetric form
+Direct discretization of \eqref{eq:euler_mom} using \eqref{eq:sph_grad} does not conserve momentum because the resulting pairwise forces are not antisymmetric \cite{Rosswog2009}. Therefore, the pressure gradient is usually rewritten using the product-rule identity%$\nabla P / \rho = \nabla(P/\rho^2) \cdot \rho + (P/\rho^2)\nabla\rho$
+, yielding the symmetric form
 \begin{equation}
     \frac{d\mathbf{v}_a}{dt} = -\sum_b m_b \left( \frac{P_a}{\rho_a^2} + \frac{P_b}{\rho_b^2} \right) \nabla_a W_{ab}\,,
     \label{eq:sph_mom_vanilla}
@@ -79,7 +78,7 @@ with conjugate energy equation
 where $\mathbf{v}_{ab} = \mathbf{v}_a - \mathbf{v}_b$. The symmetric appearance of pressure terms in indices $a$ and $b$ ensures Newton's third law holds pairwise.
 
 
-\subsubsection*{Variational derivation and grad-h correction}
+% \subsubsection*{Variational derivation and grad-h correction}
 
 Equations \eqref{eq:sph_mom_vanilla}--\eqref{eq:sph_energy_vanilla} can be derived from a discretized fluid Lagrangian via the Euler--Lagrange equations \cite{Rosswog2009}, guaranteeing conservation of linear and angular momentum and total energy by construction. When each particle uses its own smoothing length $h_a$, the variational derivation introduces the grad-h correction factor \cite{Rosswog2009}
 \begin{equation}
@@ -94,10 +93,10 @@ and the self-consistent momentum equation becomes
 where each term uses the kernel evaluated with the respective particle's smoothing length.
 
 
-\subsection{The Integral Approach to Derivatives and Generalized Volume Elements}
+\subsection{The integral approach to derivatives and generalized volume elements}
 \label{sec:iad}
 
-The standard SPH gradient \eqref{eq:sph_grad} reproduces the gradient of a constant but not of a linear field on disordered particle distributions; the error is controlled by how well the kernel sum approximates the partition of unity $\sum_b V_b W_{ab} = 1$, which degrades near boundaries, density jumps, and general uneven particle sampling \cite{Cabezon2012}. The integral approach to derivatives (IAD) corrects this through renormalization of the gradient. From a first-order Taylor expansion, one constructs a symmetric $3\times 3$ correction matrix $\boldsymbol{\tau}_a$ from local particle geometry, whose inverse $c_{ij,a} = (\boldsymbol{\tau}_a^{-1})_{ij}$ (precomputed once per timestep) defines the corrected gradient operator \cite{Cabezon2012, Cabezon2017}:
+The standard SPH gradient \eqref{eq:sph_grad} reproduces the gradient of a constant but not of a linear field on disordered particle distributions. The error is controlled by how well the kernel sum approximates the partition of unity $\sum_b V_b W_{ab} = 1$, which degrades near boundaries, density jumps, and general uneven particle sampling \cite{Cabezon2012}. The integral approach to derivatives (IAD) corrects this through renormalization of the gradient. One constructs a symmetric $3\times 3$ correction matrix $\boldsymbol{\tau}_a$ from local particle geometry, whose inverse $c_{ij,a} = (\boldsymbol{\tau}_a^{-1})_{ij}$ (precomputed once per timestep) defines the corrected gradient operator \cite{Cabezon2012, Cabezon2017}:
 \begin{equation}
     \mathcal{A}_{i,ab}(h_a) = \sum_{j} c_{ij,a} \, (x_{j,b} - x_{j,a}) \, W_{ab}(h_a)\,.
     \label{eq:iad_grad}
@@ -108,17 +107,16 @@ This replaces the standard kernel gradient everywhere in the SPH equations:
     \label{eq:iad_replacement}
 \end{equation}
 Meaning, when we later adapt the SPMHD equations from reference codes for SPH-EXA, we perform exactly this substitution. By construction, $\mathcal{A}$ reproduces the gradient of any linear function exactly regardless of particle distribution, making the IAD scheme first-order consistent \cite{Cabezon2012}. % \subsubsection*{Generalized volume elements} 
-The accuracy of SPH interpolation depends on how well particle volumes satisfy the partition of unity, $\sum_b V_b W_{ab} \approx 1$. The standard choice $V_b = m_b/\rho_b$ can deviate significantly from unity near shocks and density discontinuities. Therefore, the generalized volume element (GVE) framework \cite{Cabezon2017, GarciaSenz2022} defines an auxiliary scalar $X_a$ and obtains the volume via
+The accuracy of SPH interpolation also depends on the satisfaction of the partition of unity. The standard choice for particle volumes $V_b = m_b/\rho_b$ can deviate significantly from unity near shocks and density discontinuities. Therefore, the generalized volume element (GVE) framework \cite{Cabezon2017, GarciaSenz2022} defines an auxiliary scalar $X_a$ and obtains the volume via
 \begin{equation}
     V_a = \frac{X_a}{k_a}\,, \qquad k_a = \sum_b X_b \, W_{ab}(h_a)\,,
     \label{eq:gve}
 \end{equation}
-with density recovered as $\rho_a = m_a/V_a = k_a m_a/X_a$. The choice implemented in SPH-EXA is $X_a = m_a/\rho_a^0$, where $\rho_a^0 = \sum_b m_b W_{ab}$ is the standard summation density \cite{GarciaSenz2022}. This construction represents a fixed-point iteration driving the partition-of-unity error toward zero, improving the accuracy of all gradient evaluations.
+with density recovered as $\rho_a = m_a/V_a = k_a m_a/X_a$. The choice implemented in SPH-EXA is $X_a = m_a/\rho_a^0$, where $\rho_a^0 = \sum_b m_b W_{ab}$ is the standard summation density \cite{GarciaSenz2022}. This construction improves the accuracy of all gradient evaluations. \todo{difference first and 2nd paragraph} %represents a fixed-point iteration driving the partition-of-unity error toward zero, improving the accuracy of all gradient evaluations.
 
+% \subsubsection*{The ISPH momentum and energy equations}
 
-\subsubsection*{The ISPH momentum and energy equations}
-
-Combining the IAD gradient, GVE, and $\Omega_a$ grad-h correction within the variational framework of \S\ref{sec:sph} yields the ISPH (``Integral SPH'') momentum equation \cite{GarciaSenz2022}:
+Combining the IAD gradient, GVE, and $\Omega_a$ grad-h correction within the variational framework of §\ref{sec:sph} yields the ISPH (``Integral SPH'') momentum equation \cite{GarciaSenz2022}:
 
 \begin{equation}
     \ddot{x}^i_a = -\sum_b m_b \left[\frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \, \mathcal{A}_{i,ab}(h_a) + \frac{X_b^2 P_b}{\Omega_b m_b^2 k_b} \, \mathcal{A}_{i,ab}(h_b) \right]\,,
@@ -129,40 +127,38 @@ with conjugate energy equation
     \frac{du_a}{dt} = \frac{X_a^2 P_a}{\Omega_a m_a^2 k_a} \sum_b m_b \, v^i_{ab} \, \mathcal{A}_{i,ab}(h_a)\,.
     \label{eq:isph_energy}
 \end{equation}
-The structure mirrors the standard grad-h SPH equations \eqref{eq:sph_mom_gradh}, with the kernel gradients replaced by IAD operators and $1/\rho^2$ replaced by the GVE-derived $X^2/(m^2 k)$. When the partition of unity is exact ($k_a X_a = m_a$, i.e.\ $\rho_a = \rho_a^0$), \eqref{eq:isph_mom} reduces to \eqref{eq:sph_mom_gradh} with IAD gradients. Conservation of linear and angular momentum remains exact; energy conservation is guaranteed through the variational derivation \cite{GarciaSenz2022}.
+The structure mirrors the standard grad-h SPH equations \eqref{eq:sph_mom_gradh}, with the kernel gradients replaced by IAD operators and $1/\rho^2$ replaced by the GVE-derived $X^2/(m^2 k)$. When the partition of unity is exact ($k_a X_a = m_a$, i.e.\ $\rho_a = \rho_a^0$), \eqref{eq:isph_mom} reduces to \eqref{eq:sph_mom_gradh} with IAD gradients. %Conservation of linear and angular momentum remains exact and energy conservation is guaranteed through the variational derivation \cite{GarciaSenz2022}.
 
 SPH-EXA additionally implements a smooth transition between the ISPH symmetrization in \eqref{eq:isph_mom} and a more diffusive form for large density contrasts, controlled by the Atwood number $\mathcal{A}_t = |\rho_a - \rho_b|/(\rho_a + \rho_b)$. Below a threshold $\mathcal{A}_{t,\min}$ the ISPH form applies; above $\mathcal{A}_{t,\max}$ the volume-element prefactors become symmetric ($X_a X_b$ in both terms), similar to the GDSPH discretization \cite{WissingShen2020}.
 
 % The parameter $\sigma_{ab} \in [0,1]$ controls the symmetrization of the volume-element prefactors \cite{GarciaSenz2022}. At $\sigma = 0$ the pure ISPH form is recovered (prefactors $X_a^2$ and $X_b^2$), which reduces to \eqref{eq:sph_mom_gradh} with IAD gradients when the partition of unity is exact ($k_a X_a = m_a$). At $\sigma = 1$ the prefactors become symmetric ($X_a X_b$), recovering a form similar to the GDSPH discretization \cite{WissingShen2020}. In SPH-EXA, $\sigma$ is set per particle pair from the local Atwood number.% $\mathcal{A}_t = |\rho_a - \rho_b|/(\rho_a + \rho_b)$: below a threshold $\mathcal{A}_{t,\min}$, $\sigma = 0$ (ISPH); above $\mathcal{A}_{t,\max}$, $\sigma = 1$ (GDSPH-like); a linear ramp interpolates between the two. 
 % This prevents the E0-error of the ISPH kernel normalization from generating spurious forces at strong density contrasts \cite{GarciaSenz2022}. %Conservation of linear and angular momentum remains exact; energy conservation follows from the variational derivation.
 
-\subsection{Artificial Viscosity}
+\subsection{Artificial viscosity}
 \label{sec:av}
 
-The Euler equations admit shock discontinuities that finite-resolution SPH particles cannot represent directly. Without additional dissipation, shocks produce unphysical post-shock oscillations. Artificial viscosity (AV) provides controlled, resolution-scale dissipation that converts kinetic energy of converging flow into heat, spreading shocks over a few smoothing lengths \cite{Rosswog2009}. The standard Monaghan AV adds a pairwise viscous pressure $\Pi_{ab}$ to the momentum and energy equations, active only for approaching particles ($\mathbf{v}_{ab} \cdot \mathbf{r}_{ab} < 0$). In the signal-velocity formulation used in SPH-EXA \cite{Rosswog2009},
+The Euler equations admit shock discontinuities that finite-resolution SPH particles cannot represent directly. Without additional dissipation, shocks produce unphysical post-shock oscillations. AV provides controlled, resolution-scale dissipation that converts kinetic energy of converging flow into heat, widening shocks over a few smoothing lengths \cite{Rosswog2009}. The standard Monaghan AV adds a pairwise viscous pressure $\Pi_{ab}$ to the momentum and energy equations, active only for approaching particles, %($\mathbf{v}_{ab} \cdot \mathbf{r}_{ab} < 0$). In the signal-velocity formulation used in SPH-EXA \cite{Rosswog2009},
 \begin{equation}
     \Pi_{ab} = \frac{1}{\bar{\rho}_{ab}} \left[\frac{\alpha}{4}(\bar{c}_a + \bar{c}_b)\, w_{ab} + \beta \, w_{ab}^2 \right]\,,
     \label{eq:av_Pi}
 \end{equation}
-with $w_{ab} = \mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}$ the projected approach velocity, $\bar{c}$ the signal speed (sound speed in hydro, fast magnetosonic speed in MHD), $\alpha$ the viscosity coefficient, and $\beta = 2$. The linear term damps oscillations at the shock front; the quadratic term prevents particle interpenetration in strong shocks.
+with $w_{ab} = \mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}$ the projected approach velocity, $\bar{c}$ the signal speed (sound speed in hydro, fast magnetosonic speed in MHD), a dimensionless coefficient $\alpha$, and $\beta = 2$. The linear term damps oscillations at the shock front; the quadratic term prevents particle interpenetration in strong shocks. 
 
-Away from shocks, AV generates spurious dissipation that damps physical shear flows and vortices. The Balsara limiter \cite{Balsara1995} addresses this by distinguishing compression from shear via
+Away from shocks, AV generates unwanted dissipation that damps physical shear flows and vortices. The Balsara limiter \cite{Balsara1995} tries to address this by distinguishing compression from shear flow via
 \begin{equation}
     f_a = \frac{|\nabla \cdot \mathbf{v}|_a}{|\nabla \cdot \mathbf{v}|_a + |\nabla \times \mathbf{v}|_a + \epsilon_a}\,, \qquad \epsilon_a = 10^{-4}\,\frac{c_a}{h_a}\,,
     \label{eq:balsara}
 \end{equation}
-which approaches unity in convergent flow and zero in pure shear; the pair-averaged $\bar{f}_{ab}$ multiplies $\Pi_{ab}$. The Morris \& Monaghan scheme \cite{MorrisMonaghan1997} further reduces dissipation by evolving $\alpha$ per particle with a source/decay ODE that raises it in compressions and relaxes it to a floor value in smooth flow. A more recent approach, slope-limited reconstruction (SLR), replaces both heuristic switches entirely and is discussed in \S\ref{sec:slr}.
+which approaches unity in convergent flow and zero in pure shear. We then multiply $\Pi_{ab}$ with the pair-averaged $\bar{f}_{ab}$. One can further reduce dissipation by treating the per-particle $\alpha$ as a control knob and use so-called heuristic switches to dynamically increase its value in compressions and reduce it in smooth flow \cite{MorrisMonaghan1997}. 
 
+A more recent approach tries to get rid of heuristic switches and instead use slope-limited reconstruction to subtract the linear part of the velocity field from $\mathbf{v}_{ab}$ and thus reduce dissipation in resolved flow \cite{GarciaSenzCabezon2026}. 
 
 \subsection{Ideal Magnetohydrodynamics}
 \label{sec:mhd}
 
 Ideal magnetohydrodynamics extends the Euler equations with the Lorentz force and induction equation to describe perfectly conducting fluids threaded by magnetic fields $\mathbf{B}$.
-
-
-\subsubsection*{The Lorentz force}
-
-The force per unit volume exerted by the magnetic field on the fluid is, in a convenient divergence form \cite{WissingShen2020},
+% \subsubsection*{The Lorentz force}
+The force per unit volume exerted by the magnetic field on the fluid is \cite{WissingShen2020}, \todo{check stress tensor correct?}
 \begin{equation}
     \frac{d\mathbf{v}}{dt}\bigg|_\mathrm{mag} = \frac{1}{\rho} \nabla \cdot \mathbf{S}\,,
     \label{eq:lorentz}
@@ -174,29 +170,24 @@ where $\mathbf{S}$ is the Maxwell stress tensor
 \end{equation}
 The diagonal terms $-B^2/(2\mu_0)$ give isotropic magnetic pressure, while off-diagonal terms $B^i B^j/\mu_0$ produce tension along field lines. The total MHD momentum equation is $d\mathbf{v}/dt = -\nabla P/\rho + \nabla \cdot \mathbf{S}/\rho$.
 
+% \subsubsection*{The induction equation}
 
-\subsubsection*{The induction equation}
-
-For a perfectly conducting fluid ($\eta = 0$), the magnetic field evolves according to \cite{WissingShen2020}
+For a perfectly conducting fluid ($\eta = 0$), the magnetic field evolves according to
 \begin{equation}
     \frac{d\mathbf{B}}{dt} = (\mathbf{B} \cdot \nabla)\mathbf{v} - \mathbf{B}(\nabla \cdot \mathbf{v})\,.
     \label{eq:induction}
 \end{equation}
-The first term stretches and bends field lines through velocity shear; the second amplifies the field in compressions ($\nabla \cdot \mathbf{v} < 0$). These represent the two mechanisms by which fluid motions modify the frozen-in magnetic field.
+The first term stretches and bends field lines through shearing motion; the second amplifies the field in compressions.
 
-
-\subsubsection*{The divergence constraint}
+% \subsubsection*{The divergence constraint}
 \label{sec:divB_constraint}
 
-Maxwell's equations require $\nabla \cdot \mathbf{B} = 0$ at all times. In continuum MHD this is preserved automatically: if the initial field is divergence-free and the induction equation holds exactly, $\nabla \cdot \mathbf{B}$ remains zero. Numerically, however, discretization errors violate this constraint, producing unphysical magnetic monopoles that generate spurious forces and destabilize simulations. Controlling these errors is central to SPMHD, addressed by the divergence-cleaning scheme in \S\ref{sec:divb_cleaning}.
-
-The normalized divergence error
+Maxwell's equations require $\nabla \cdot \mathbf{B} = 0$ at all times. In continuum MHD this is preserved automatically: if the initial field is divergence-free and the induction equation holds exactly, $\nabla \cdot \mathbf{B}$ remains zero. Numerically, however, discretization errors violate this constraint, producing unphysical magnetic monopoles that generate spurious forces and destabilize simulations. The normalized divergence error
 \begin{equation}
     \varepsilon_{\mathrm{divB}} = \frac{h\,|\nabla \cdot \mathbf{B}|}{|\mathbf{B}|}
     \label{eq:divb_error}
 \end{equation}
-provides a dimensionless diagnostic; a well-controlled simulation maintains mean $\varepsilon_{divB} \lesssim 10^{-2}$ \cite{WissingShen2020, Price2018}.
-
+provides a dimensionless diagnostic. A well-controlled simulation maintains a mean divergence error $\langle \varepsilon_{divB}\rangle \lesssim 10^{-2}$ \cite{WissingShen2020, Price2018}. Controlling these errors is central to SPMHD and addressed via the divergence-cleaning scheme (§\ref{sec:divb_cleaning}).
 
 \subsection{SPMHD: Discretization in SPH-EXA}
 \label{sec:spmhd}
