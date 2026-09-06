@@ -31,6 +31,7 @@
 }
 
 \begin{document}
+\pagenumbering{gobble} % suppress page numbers in front matter
 % \setlength{\textwidth}{5cm}
 
 % Add a bit of top space so the title block sits more centrally on the page
@@ -46,8 +47,11 @@
 
 % 
 \newpage
-\listoftodos 
+\pagenumbering{roman}
+\setcounter{page}{1}
+\listoftodos
 \newpage
+\vspace*{5cm}
 \input{chapters/abstract}
 
 \newpage
@@ -57,7 +61,9 @@
 \input{chapters/abbreviations}
 % \twocolumn
 
-\newpage
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 \input{chapters/introduction}
 \newpage
 \input{chapters/theory}

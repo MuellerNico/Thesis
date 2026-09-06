@@ -247,7 +247,6 @@ where $\hat{B}^i_a = H(\beta_a)\, B^i_a$ is modulated by a switch $H$ that activ
     \end{cases}
     \label{eq:beta_switch}
 \end{equation}
-
 This correction deliberately breaks exact momentum conservation; the error is proportional to local $\nabla \cdot \mathbf{B}$ and kept small by the divergence-cleaning scheme.
 
 
@@ -330,39 +329,37 @@ where $\mathbf{B}_{ab} = \mathbf{B}_a - \mathbf{B}_b$, $\alpha_{B,ab} = \tfrac{1
 The factor $|\mathbf{r}_{ab}|$ in $\eta$ cancels against the particle spacing in the Brookshaw denominator, so it does not appear explicitly. Equation \eqref{eq:ar_du} is the energy conjugate of \eqref{eq:ar_dB}: the magnetic energy lost is recovered exactly as heat. Setting $\rho_a = \rho_b$ and $\boldsymbol{\mathcal{A}}_{ab} \to \nabla_a W_{ab}$ recovers the GDSPH form of Wissing \& Shen \cite{WissingShen2020}.
 
 As with AV, we generally want to keep AR to a minimum in regions free from discontinuities and minimize the unphysical dissipation of magnetic energy. Analogously to AV, we can modulate per-particle $\alpha_B$ with heuristic switches, such as the one proposed by Tricco \& Price \cite{TriccoPrice2013}
-
 \begin{equation}
     \alpha_{B,a} = \min\!\left(\frac{h_a \|\nabla \mathbf{B}\|_a}{|\mathbf{B}_a|},\; 1\right)\,,
     \label{eq:tp_switch}
 \end{equation}
-
 where $\|\nabla \mathbf{B}\|$ is the Frobenius norm of the magnetic-field gradient tensor and serves as a steepness detector. This is large ($\sim 1$) near discontinuities and small in smooth regions.
 
 This was later discarded by the authors themselves in \cite{Price2018}, where they found to optain better results using a constant value of $\alpha_B=1$, combined with a `self-switching' signal velocity
-
 \begin{equation}
     v_{\mathrm{sig},B} = |\mathbf{v}_{ab} \times \hat{\mathbf{r}}_{ab}|
     \label{eq:vsigB}
 \end{equation}
-
 instead of simply using the fast magnetosonic speed $v_\mathrm{mhd}$ \eqref{eq:vmhd}. This new $v_{\mathrm{sig},B}$ vanishes when there is no relative transverse motion between particles. In practice, transverse velocity differences are the only thing creating discontinuities in $\mathbf{B}$ that the induction equation cannot represent smoothly. Compression and shocks change together with density and are already smoothed by AV acting on $\rho$. 
 
-However, $v_{\mathrm{sig},B}$ is a purely kinematic criterion. It decides \emph{when} the field is allowed to be dissipated, but knows nothing about \emph{what} is being dissipated: whether the pair difference $\mathbf{B}_{ab}$ is an unresolved jump that must be smoothed, or a perfectly resolved gradient that should be left alone. Any transverse velocity difference switches it on. This includes rigid rotation, where $|\mathbf{v}_{ab} \times \hat{\mathbf{r}}_{ab}| = \Omega\,|\mathbf{r}_{ab}|$ for every pair, the small-scale velocity noise inherent to glass-like particle distributions, and, most importantly, the transverse motion of a resolved Alfvén wave, where $\mathbf{v}_\perp \neq 0$ \emph{is} the physics. In all of these cases $v_{\mathrm{sig},B} \sim |\delta v_\perp|$ everywhere, and a constant $\alpha_B = 1$ dissipates smooth field structure at full strength. The usual remedy is to lower the coefficient, and $\alpha_B = 0.5$ is a common compromise \cite{WissingShen2020}. This trades wave preservation against shock capturing globally and is what we use as the baseline scheme in §\ref{sec:numerical_tests}.
+However, $v_{\mathrm{sig},B}$ is a purely kinematic criterion. It decides \emph{when} the field is allowed to be dissipated, but knows nothing about \emph{what} is being dissipated: whether the pair difference $\mathbf{B}_{ab}$ is an unresolved jump that must be smoothed, or a perfectly resolved gradient that should be left alone. Any transverse velocity difference switches it on. This includes rigid rotation, the small-scale velocity noise inherent to glass-like particle distributions, and, most importantly, the transverse motion of a resolved Alfvén wave, where $\mathbf{v}_\perp \neq 0$. In all of these cases $v_{\mathrm{sig},B} \sim |\delta v_\perp|$ everywhere, and a constant $\alpha_B = 1$ dissipates smooth field structure at full strength. Lowering the coefficient to $\alpha_B = 0.5$ is a compromise made in \cite{WissingShen2020} and is what we use as the baseline scheme in §\ref{sec:numerical_tests}.
 
-What is missing is spatial information about the field itself. The Tricco \& Price switch \eqref{eq:tp_switch} supplies it as a per-particle amplitude $\alpha_{B,a}$, which is a coarse answer: one scalar per particle cannot separate a resolved gradient from a discontinuity at the same location, and its threshold is a tuned heuristic. Slope-limited reconstruction offers a finer-grained alternative that acts directly on the pair difference, and which we adopt for the artificial resistivity in SPH-EXA.
+What is missing is spatial information about the field itself. The Tricco \& Price switch \eqref{eq:tp_switch} supplies it as a per-particle $\alpha_{B,a}$, but one scalar cannot separate a resolved gradient from a discontinuity at the same location. Slope-limited reconstruction offers a finer-grained alternative that acts directly on the pair difference, and which we adopt for the artificial resistivity in SPH-EXA.
 
 
 \subsubsection{Slope-limited reconstruction for artificial resistivity (ARSLR)}
 \label{sec:slr}
 
-García-Senz \& Cabezón \cite{GarciaSenzCabezon2026} recently proposed slope-limited reconstruction (SLR) as a replacement for heuristic switches in artificial viscosity. Instead of scaling the amount of dissipation by a detector, the resolved linear part of the velocity field is subtracted from $\mathbf{v}_{ab}$ before it enters the viscous term, so that only the non-linear residual, the part SPH cannot represent, is dissipated. SPH-EXA implements the hydro variants of this scheme (AVSLR, AVSLRB2) for its AV and we refer to \cite{GarciaSenzCabezon2026} for their derivation and validation. Here we transfer the idea to the magnetic field.
+García-Senz \& Cabezón \cite{GarciaSenzCabezon2026} recently proposed slope-limited reconstruction (SLR) as a replacement for heuristic switches in artificial viscosity. Instead of scaling the amount of dissipation by a detector, the resolved linear part of the velocity field is subtracted from $\mathbf{v}_{ab}$ before it enters the viscous term, so that only the non-linear residual, the part SPH cannot represent, is dissipated. SPH-EXA already implements the hydro variants of this scheme (AVSLR, AVSLRB2) for its AV and we refer to \cite{GarciaSenzCabezon2026} for derivation and validation. Here we apply the idea to the magnetic field.
 
 The reconstruction replaces the raw difference $\mathbf{B}_{ab}$ in \eqref{eq:ar_dB} by
 \begin{equation}
     \mathbf{B}'_{ab} = \mathbf{B}_{ab} - \tfrac{1}{2}\,\phi_{ab}\left(\mathbf{J}_{\mathbf{B},a} + \mathbf{J}_{\mathbf{B},b}\right)\mathbf{r}_{ab}\,,
     \label{eq:slr_B}
 \end{equation}
-where $\mathbf{J}_{\mathbf{B}}$ is the $3\times3$ Jacobian $\partial B^i/\partial x^j$, computed with the same IAD gradient operator as the velocity Jacobian \eqref{eq:vel_jacobian}. The term $\mathbf{J}_\mathbf{B}\,\mathbf{r}_{ab}$ is the linear estimate of how much $\mathbf{B}$ changes between $a$ and $b$. In a smooth field this estimate accounts for almost the whole of $\mathbf{B}_{ab}$, so $\mathbf{B}'_{ab} \to 0$ and no dissipation acts, regardless of how large $v_{\mathrm{sig},B}$ is. Across a discontinuity or in incoherent noise the linear estimate fails, $\mathbf{B}'_{ab} \approx \mathbf{B}_{ab}$, and the dissipation acts at full strength with $\alpha_B = 1$. This is the scale separation that neither $v_{\mathrm{sig},B}$ nor a global $\alpha_B$ can provide: the scheme separates resolved from unresolved structure at the level of each pair, without a tuned threshold.
+where $\mathbf{J}_{\mathbf{B}}$ is the Jacobian of $\mathbf{B}$, computed with the same IAD gradient operator as the velocity Jacobian \eqref{eq:vel_jacobian}. The term $\mathbf{J}_\mathbf{B}\,\mathbf{r}_{ab}$ is the linear estimate of how much $\mathbf{B}$ changes between $a$ and $b$. In a smooth field this estimate accounts for almost the whole of $\mathbf{B}_{ab}$, so $\mathbf{B}'_{ab} \to 0$ and no dissipation acts, regardless of how large $v_{\mathrm{sig},B}$ or $\alpha_B$ is. Across a discontinuity or in incoherent noise the linear estimate fails, $\mathbf{B}'_{ab} \approx \mathbf{B}_{ab}$, and the dissipation acts at full strength with $\alpha_B = 1$. This way the scheme separates resolved from unresolved structure at the level of each pair, something neither $v_{\mathrm{sig},B}$ nor a global $\alpha_B$ can provide.
+
+A second property follows from the fact that \eqref{eq:slr_B} is a vector equation. Each component of $\mathbf{B}$ is reconstructed from its own row of the Jacobian, so the scheme decides per component what is dissipated. Theoretically, a component that varies linearly across the pair is reconstructed and left untouched, while a component that jumps is dissipated at full strength, within the same particle pair and at the same instant. All other schemes presented necessarily dissipate all components in proportion.
 
 The limiter $\phi_{ab}$ protects the reconstruction where the linear estimate is unreliable. Following \cite{GarciaSenzCabezon2026, Frontiere2017} we use the van Leer form
 \begin{equation}
@@ -370,76 +367,108 @@ The limiter $\phi_{ab}$ protects the reconstruction where the linear estimate is
     F_{ab} = \frac{\mathbf{r}_{ab} \cdot \mathbf{J}_{\mathbf{B},a}\, \mathbf{r}_{ab}}{\mathbf{r}_{ab} \cdot \mathbf{J}_{\mathbf{B},b}\, \mathbf{r}_{ab}}\,,
     \label{eq:vanleer}
 \end{equation}
-which compares the directional derivative of $\mathbf{B}$ along $\mathbf{r}_{ab}$ as seen from both particles. If the two estimates agree ($F_{ab} \approx 1$) the field is locally linear and the full correction is applied. If they disagree in magnitude or sign, as at a discontinuity, $\phi_{ab} \to 0$ and the raw difference is recovered. The expression is symmetric under $F_{ab} \to 1/F_{ab}$, so a single $\phi_{ab}$ serves both particles. The close-pair guard $\kappa_{ab}$ \cite{Frontiere2017} switches the reconstruction off smoothly for anomalously close pairs, $\kappa_{ab} = \exp[-((q_{ab} - q_\mathrm{crit})/q_\mathrm{fold})^2]$ for $q_{ab} < q_\mathrm{crit}$ and $1$ otherwise, with $q_{ab} = \min(|\mathbf{r}_{ab}|/h_a, |\mathbf{r}_{ab}|/h_b)$, $q_\mathrm{crit} = (32\pi/3n_b)^{1/3}$ the mean inter-particle spacing in units of $h$, and $q_\mathrm{fold} = 0.2$.
+which compares the directional derivative of $\mathbf{B}$ along $\mathbf{r}_{ab}$ as seen from both particles. If the two estimates agree ($F_{ab} \approx 1$) the field is locally linear and the full correction is applied. If they disagree in magnitude or sign, as at a discontinuity, $\phi_{ab} \to 0$ and the raw difference is recovered. The expression is symmetric, so a single $\phi_{ab}$ serves both particles. 
+
+The close-pair guard $\kappa_{ab}$ \cite{Frontiere2017} switches reconstruction off (i.e. re-enables full dissipation) for anomalously close particle pairs ($q_{ab} < q_\mathrm{crit}$), where $q_{ab} = \min(|\mathbf{r}_{ab}|/h_a, |\mathbf{r}_{ab}|/h_b)$ and $q_\mathrm{crit} = (32\pi/(3 n_b))^{1/3}$ estimates the mean interparticle spacing:
+\begin{equation}
+    \kappa_{ab} = \begin{cases}
+        \exp\!\left[-\left(\dfrac{q_{ab} - q_\mathrm{crit}}{q_\mathrm{fold}}\right)^{\!2}\right] & q_{ab} < q_\mathrm{crit}\,, \\
+        1 & q_{ab} \geq q_\mathrm{crit}\,,
+    \end{cases}
+    \label{eq:kappa}
+\end{equation}
+with $q_\mathrm{fold} = 0.2$.
 
 The heating term \eqref{eq:ar_du} is evaluated with $\mathbf{B}_{ab} \cdot \mathbf{B}'_{ab}$ in place of $B_{ab}^2$. This keeps it the exact energy conjugate of the reconstructed induction term, so the magnetic energy removed by \eqref{eq:slr_B} still reappears entirely as heat.
 
+\subsubsection*{`Limiter limitations'}
+Note that $F_{ab}$ is a scalar built from $\mathbf{r}_{ab}\cdot\mathbf{J}_{\mathbf{B}}\,\mathbf{r}_{ab}$, i.e.\ from the variation along the pair of the field component \emph{parallel} to $\mathbf{r}_{ab}$. For viscosity this is a natural choice, since AV acts only on $\mathbf{v}_{ab}\cdot\hat{\mathbf{r}}_{ab}$. For resistivity it is weaker: $\nabla\cdot\mathbf{B} = 0$ requires the normal component to be continuous across any surface, so for a pair straddling a current sheet the component inspected by the limiter is smooth and $\phi_{ab}$ remains close to one, even though the transverse components jump. The steepness modulation of the following section, which uses the full gradient norm, partly closes this gap for the SLRB and SLRB2 variants.
+
+In the course of this project, multiple variants replacing $F_{ab}$ by a vector or component-wise limiter built from the full $\mathbf{J}_{\mathbf{B}}\,\mathbf{r}_{ab}$ were tested and abandoned. All such variants showed intense ringing at the Brio-Wu shock fronts and removed less noise from a perturbed Alfvén wave. One likely explanation is that per-component estimates rarely disagree enough when gradients are smoothed over $\mathcal{O}(100)$ neighbors, which leads to the limiter losing its sensitivity. 
+
+The one-dimensional tests of §\ref{sec:numerical_tests} however do not necessarily expose this limitation, since there every pair samples the true gradient direction. Whether it matters for oblique fronts remains open. \todo{rewrite. not 1d etc}
 
 \subsubsection*{Steepness modulation (SLRB, SLRB2)}
 
-In the hydro scheme, García-Senz \& Cabezón additionally weight the reconstruction with the Balsara factor \eqref{eq:balsara}, so that the linear part is not subtracted at shocks ($\mathcal{B}_a \to 1$) and full dissipation is guaranteed there. The Balsara factor has no clean magnetic analogue: $\nabla\cdot\mathbf{B} \approx 0$ is a constraint rather than a flow feature, and the discontinuities that AR must treat (current sheets, rotational discontinuities) are non-compressive, so a velocity-based detector would read zero exactly where resistivity is needed. We instead use the Tricco \& Price steepness measure \eqref{eq:tp_switch} as a per-particle modulator,
+In the hydro scheme, García-Senz \& Cabezón additionally weight the reconstruction with the Balsara factor \eqref{eq:balsara}, so that the linear part is not subtracted at shocks ($\mathcal{B}_a \to 1$) and full dissipation is guaranteed there. The Balsara factor has no clean magnetic analogue because $\nabla\cdot\mathbf{B} \approx 0$ is a constraint rather than a flow feature. We instead go back to the Tricco \& Price steepness measure \eqref{eq:tp_switch} as a per-particle modulator:
 \begin{equation}
-    \mathrm{m}_a = \min\!\left(1,\; \frac{h_a\, \|\nabla \mathbf{B}\|_a}{|\mathbf{B}_a|}\right)\,,
+    \mathrm{m}_a = \min\!\left(1,\; \frac{h_a\, \|\nabla \mathbf{B}\|_a}{|\mathbf{B}_a|}\right)\, .
     \label{eq:slr_modulator}
 \end{equation}
-which is of order unity where the field varies over less than a smoothing length and small in smooth regions. It enters the reconstruction as a weight on each Jacobian term,
+In the reconstruction it functions as a weight on each Jacobian term,
 \begin{equation}
     \mathbf{B}'_{ab} = \mathbf{B}_{ab} - \tfrac{1}{2}\,\phi_{ab}\left[(1 - \mathrm{m}_a^p)\,\mathbf{J}_{\mathbf{B},a} + (1 - \mathrm{m}_b^p)\,\mathbf{J}_{\mathbf{B},b}\right]\mathbf{r}_{ab}\,,
     \label{eq:slr_B_mod}
 \end{equation}
-with $p = 1$ (SLRB) or $p = 2$ (SLRB2). The latter mirrors the $(1 - \mathcal{B}_a^2)$ weighting of the hydro AVSLRB2 scheme. Near a steep feature the weight vanishes, the reconstruction is suppressed and the raw difference is dissipated. In smooth regions the weight is close to one and the full SLR correction applies. Finally, a pair-averaged floor
+with $p = 1$ (SLRB) or $p = 2$ (SLRB2). The latter mirrors the $(1 - \mathcal{B}_a^2)$ weighting of the hydro AVSLRB2 scheme. Near a steep feature the weight vanishes, the reconstruction is suppressed and the full difference is dissipated. In smooth regions the weight is close to one and the full SLR correction applies. Finally, a pair-averaged floor
 \begin{equation}
     L_{ab} = \max\!\left(F_\mathrm{floor},\; \tfrac{1}{2}(\mathrm{m}_a + \mathrm{m}_b)\right)\,, \qquad
     \eta_\mathrm{eff} = L_{ab}\, \alpha_B\, v_{\mathrm{sig},B}\,,
     \label{eq:Lij}
 \end{equation}
-can scale the whole dissipation coefficient in the same way as the linear AV term in \cite{GarciaSenzCabezon2026}. With the default $F_\mathrm{floor} = 1$ this factor is inactive and $L_{ab} \equiv 1$.
+can scale the whole resistivity coefficient in the same way as the linear AV term in \cite{GarciaSenzCabezon2026}, which they found beneficial in the simulation of subsonic turbulence. This is to be considered purely experimental within AR and with the default $F_\mathrm{floor} = 1$ this factor is inactive and $L_{ab} \equiv 1$. 
 
-Table~\ref{tab:ar_schemes} summarizes the resistivity schemes compared in this work. All of them use the self-switching signal velocity \eqref{eq:vsigB}; they differ only in how the pair difference and the coefficient are treated.
-\begin{table}[h]
-    \centering
-    \begin{tabular}{llll}
-        \hline
-        Scheme & $\alpha_B$ & pair difference & coefficient scaling \\
-        \hline
-        a05   & $0.5$ & $\mathbf{B}_{ab}$                         & --- \\
-        SLR   & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B}       & --- \\
-        SLRB  & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=1$ & $L_{ab}$ \\
-        SLRB2 & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=2$ & $L_{ab}$ \\
-        \hline
-    \end{tabular}
-    \caption{Artificial resistivity schemes. The baseline a05 is the constant-coefficient scheme of \cite{Price2018, WissingShen2020}; the SLR family is the magnetic transfer of the slope-limited reconstruction of \cite{GarciaSenzCabezon2026} introduced in this work.}
-    \label{tab:ar_schemes}
+\subsubsection*{Resistivity schemes}
+Table~\ref{tab:ar_schemes} summarizes the resistivity schemes available in SPH-EXA. All of them use the self-switching signal velocity \eqref{eq:vsigB}.
+
+\begin{table}[htbp]
+\setlength{\abovecaptionskip}{6pt}% space between tabular and caption (arxiv.sty resets this per-table)
+\centering
+\begin{tabular}{@{}ll@{}ll@{}}
+\toprule
+Scheme & $\alpha_B$ & pair difference & coefficient scaling \\
+\midrule
+switches & Tricco \& Price switch \; & $\mathbf{B}_{ab}$ & --- \\
+constant & $0.5, 1.0$ & $\mathbf{B}_{ab}$                         & --- \\
+SLR   & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B}       & --- \\
+SLRB  & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=1$ & $L_{ab}$ \\
+SLRB2 & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=2$ & $L_{ab}$ \\
+\bottomrule
+\end{tabular}
+\caption{AR schemes in SPH-EXA. The constant-coefficient scheme can technically assume any real number, however $\alpha_B=0.5$ as in \cite{WissingShen2020} or 1.0 as in \cite{Price2018} are the established variants.}
+\label{tab:ar_schemes}
 \end{table}
 
-The combination of $v_{\mathrm{sig},B}$ with ARSLR is not found in the literature and its behaviour is the subject of the tests in §\ref{sec:numerical_tests}. The two mechanisms are complementary: $v_{\mathrm{sig},B}$ determines when dissipation may act, the reconstruction determines where a genuinely unresolved field structure exists to be dissipated. The hope is that this removes the need for the global compromise of a reduced $\alpha_B$, dissipating incoherent noise and true discontinuities at full strength while preserving resolved structure such as waves.
+Applying slope-limited reconstruction to artificial resistivity has, to our knowledge, not been attempted before and its behavior is subject to the tests in §\ref{sec:numerical_tests}. The hope is that this removes the need for the global compromise of a reduced $\alpha_B$. Allowing resistivity to dissipate incoherent noise and true discontinuities at full strength while preserving resolved structure.
 
+% \subsection{Artificial Conductivity}
+% \label{sec:ac}
 
-\subsection{Artificial Conductivity}
-\label{sec:ac}
+% At contact discontinuities (temperature jumps at constant pressure and density), SPH's Lagrangian nature can produce small-scale pressure blips because particles with different internal energies are in close proximity but the kernel-smoothed pressure field is not exactly balanced. Artificial conductivity provides localized thermal diffusion to smooth this artifact \cite{Price2018}:
+% \begin{equation}
+%     \left(\frac{du_a}{dt}\right)_\mathrm{cond} = \alpha_u \sum_b m_b \frac{v^\mathrm{sig}_u \, (u_a - u_b)}{\bar{\rho}_{ab}}\; (\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab})\,,
+%     \label{eq:ac}
+% \end{equation}
+% where $\alpha_u$ is the conductivity coefficient and $v^\mathrm{sig}_u = |\mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}|$ is the approach-velocity signal speed (with gravity) \cite{Rosswog2009}. The term is only active for converging particles. In MHD specifically, it smooths spurious temperature spikes near fast and slow shocks.
 
-At contact discontinuities (temperature jumps at constant pressure and density), SPH's Lagrangian nature can produce small-scale pressure blips because particles with different internal energies are in close proximity but the kernel-smoothed pressure field is not exactly balanced. Artificial conductivity provides localized thermal diffusion to smooth this artifact \cite{Price2018}:
-\begin{equation}
-    \left(\frac{du_a}{dt}\right)_\mathrm{cond} = \alpha_u \sum_b m_b \frac{v^\mathrm{sig}_u \, (u_a - u_b)}{\bar{\rho}_{ab}}\; (\hat{\mathbf{r}}_{ab} \cdot \nabla_a W_{ab})\,,
-    \label{eq:ac}
-\end{equation}
-where $\alpha_u$ is the conductivity coefficient and $v^\mathrm{sig}_u = |\mathbf{v}_{ab} \cdot \hat{\mathbf{r}}_{ab}|$ is the approach-velocity signal speed (with gravity) \cite{Rosswog2009}. The term is only active for converging particles. In MHD specifically, it smooths spurious temperature spikes near fast and slow shocks.
-
-\todo[inline]{mention that it's implemented but deactivated by default. not fully tested}
+% \todo[inline]{mention that it's implemented but deactivated by default. not fully tested. or just remove this. not rly relevant}
 
 \subsection{Time Integration}
 \label{sec:timeint}
 
-The magnetic-field components and the cleaning field $\psi/c_h$ are advanced in time using the same Adams--Bashforth second-order (AB2) scheme as the hydro equations
+The magnetic-field components and the cleaning variable $\psi/c_h$ are advanced with the same second-order Adams--Bashforth (AB2) scheme that SPH-EXA uses for the internal energy,
+
 \begin{equation}
     q^{n+1} = q^n + \dot{q}^n \, \Delta t + \frac{1}{2}\frac{\dot{q}^n - \dot{q}^{n-1}}{\Delta t_{n-1}}\, |\Delta t|\, \Delta t\,,
     \label{eq:ab2}
 \end{equation}
-where $\dot{q}^n$ denotes the time derivative at the current step and $\dot{q}^{n-1}$ that at the previous step. 
-
-The time step is constrained by the CFL condition
+where $\dot{q}^{n}$ and $\dot{q}^{n-1}$ are the time derivatives at the current and previous step. The time step is constrained by the Courant condition
+% \begin{equation}
+%     \Delta t = K_\mathrm{cour} \min_a \frac{h_a}{\max(v_{\mathrm{sig},ab},\; v_{\mathrm{mhd},a})}\,,
+%     \label{eq:cfl}
+% \end{equation}
 \begin{equation}
-    \Delta t = K_\mathrm{cour} \min_a \frac{h_a}{\max(v_{\mathrm{sig},a},\; v_{\mathrm{mhd},a})}\,,
+    \Delta t = K_\mathrm{cour} \min_a \frac{h_a}{\max\!\left(v_{\mathrm{mhd},a},\; \max_b v_{\mathrm{sig},ab}\right)}\,, \qquad
+    v_{\mathrm{sig},ab} = \tfrac{1}{2}\left(v_{\mathrm{mhd},a} + v_{\mathrm{mhd},b}\right) - 2\,\mathbf{v}_{ab}\cdot\hat{\mathbf{r}}_{ab}\,,
     \label{eq:cfl}
 \end{equation}
-where $v_\mathrm{sig}$ is the pairwise signal velocity from AV and $v_\mathrm{mhd}$ the local fast magnetosonic speed \eqref{eq:vmhd}.
+
+
+where $v_\mathrm{sig,ab}$ is the pairwise signal velocity from AV and $v_\mathrm{mhd}$ the local fast magnetosonic speed \eqref{eq:vmhd}. $K_\mathrm{cour} = 0.2$ in all our tests. The global step is additionally capped by a density-change limit and by $1.1\,\Delta t_{n-1}$.
+
+
+AR (§\ref{sec:ar}) is a diffusion term and requires $\Delta t \lesssim h^2/\eta$. With $\eta \propto \alpha_B v_{\mathrm{sig},B} h$, this is a condition on $\alpha_B v_{\mathrm{sig},B}$, which does not appear in \eqref{eq:cfl} because $v_{\mathrm{sig},B}$ is transverse. It is satisfied in all our runs at $\alpha_B \leq 1$, but a strongly supersonic shear layer could technically violate the condition. At larger $\alpha_B$ the term $h/(\alpha_B v_{\mathrm{sig},B})$ would have to enter the minimum in \eqref{eq:cfl}.
+
+Hyperbolic cleaning (§\ref{sec:divb_cleaning}) transports errors at $c_h = f_\mathrm{clean}\, v_\mathrm{mhd}$, which the condition covers for $f_\mathrm{clean} = 1$. A larger factor would require $c_h$ to replace $v_\mathrm{mhd}$ in \eqref{eq:cfl}. The arabolic damping term $\psi/\tau$ requires $\Delta t < \tau = h/(\sigma_c c_h)$. Combined with \eqref{eq:cfl} this gives $\Delta t \leq K_\mathrm{cour}\,\sigma_c\,\tau = 0.2\,\tau$, so it is satisfied automatically as long as $\sigma_c \leq 5$.
+
+

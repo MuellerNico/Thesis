@@ -17,8 +17,7 @@ The test setups closely follow those also used in Wissing \& Shen (2020) \cite{W
 If not explicitly written otherwise, the test setups use the following default parameters. We use the sinc6 smoothing kernel with \texttt{ng0=150} desired and \texttt{ngmax=200} maximum neighbors per particle. AV uses AVSLR with constant $\alpha = 1.0$ (see §\ref{sec:slr}). And so does AR with ARSLR and $\alpha_B=1.0$. Magnetic constant $\mu_0 = 1$. We use an adiabatic EOS (equation of state) with $\gamma = 5/3$. Artificial conductivity (AC) is disabled as described in §\ref{sec:ac}. \todo[inline]{cleaning terms, other dissipation?}
 
 \paragraph{Naming of AR schemes}
-For simplicity we label the baseline scheme, using constant $\alpha_B = 0.5$, in our figures as \texttt{a05}. The schemes employing reconstruction as introduced in §\ref{sec:slr} are labelled \texttt{SLR}, \texttt{SLRB} and \texttt{SLRB2} respectively. All AR schemes use the self-switching $v_{sig,B}$ as defined in \eqref{eq:vsigB}.
-
+For simplicity we label the baseline scheme, using constant $\alpha_B = 0.5$, in our figures as \texttt{a05}. The schemes employing reconstruction as introduced in §\ref{sec:slr} are labelled \texttt{SLR}, \texttt{SLRB} and \texttt{SLRB2} respectively. All AR schemes use the self-switching $v_{sig,B}$ as defined in \eqref{eq:vsigB}. \todo{sentence on resistive heating and reference eq}
 \paragraph{Plotting Method}
 \label{sec:plotting_method}
 The two-dimensional slices plotted in the following sections are created with the following method: A particle $i$ is only selected if its distance to the slice plane is smaller than $2h_i$, i.e. the plane actually falls inside its kernel support. Then the selected particles are interpolated onto a regular grid of $512 \times 512$ pixels. Pixel values are calculated with the normalized SPH sum $ {\sum f_i W(r_{ip}/ h_i)}/{\sum W(r_{ip}/h_i)}$, where $W$ is the cubic spline kernel, $h_i$ the particle's smoothing length, and $r_{ip}=|r_i-r_p|$ the full 3D distance between the particle and the pixels center (including out-of-plane offset). This way of selection and interpolation tries to stay as close as possible to the actual physical representation. \todo{midpoint of box}
@@ -55,7 +54,7 @@ where $x_1$ is the rotated direction of propagation and $\lambda=1$ is the wavel
     \centering
     \includegraphics[width=0.4\linewidth]{img/Alfven/alfven_b2_step6_seaborn.pdf}
     \includegraphics[width=0.4\linewidth]{img/Alfven/alfven_convergence.pdf}
-    \caption{Results of the CP Alfvén Wave test. The particle magnetic field at $t=5$ is projected onto the transverse axis $B2$ and scattered against position along the propagation direction $x_1$. The analytical solution (initial condition) is shown in black. The second panel shows the L1 error $L_1(B_2)$ as a function of resolution $n_x$, which converges with second-order.}
+    \caption{Results of the CP Alfvén Wave test. The particle magnetic field at $t=4$ is projected onto the transverse axis $B2$ and scattered against position along the propagation direction $x_1$. The analytical solution (initial condition) is shown in black. The second panel shows the L1 error $L_1(B_2)$ as a function of resolution $n_x$, which converges with second-order.}
     \label{fig:alfven}
 \end{figure}
 
@@ -132,9 +131,9 @@ In this magnetized blast wave we have a central, over-pressurized region which t
 
 A 3D square box $L=[1,1,1]$ is initialized with uniform density and resolution $N=250^3$. The inner region (radius $R=0.125$) is over-pressurized with $P_{in}=100$ while $P_{out}=1$). The initial magnetic field is set to $B = [10/ \sqrt{2}, 0, 10/\sqrt{2}]$, giving plasma beta $\beta_{in}=2$ and $\beta_{out}=0.02$. 
 
-Figure \ref{fig:sedov} shows the results after $t=0.02$. Compared to Fig. 8 in Wissing \& Shen (2020)\cite{WissingShen2020}, the bean-like shape of our blast wave appears a bit narrower with a slightly thicker shock front. The precise internal structure is hard to compare as their Fig 8. is a bit blurry (especially apparent when comparing the pressure panel). We used same per-particle-h and kernel interpolation plotting method as described in the beginning of §\ref{sec:numerical_tests}. But overall we observe similar structure. We also clearly see the expected double-shock in thermal pressure and the outer ring in the other three panels. 
+Figure \ref{fig:sedov} shows the results after $t=0.02$. Compared to Fig. 8 in \cite{WissingShen2020}, the bean-like shape of our blast wave appears a bit narrower with a slightly thicker shock front. The precise internal structure is hard to compare as their Fig 8. is a bit blurry (especially apparent when comparing the pressure panel). We used same per-particle-h and kernel interpolation plotting method as described in the beginning of §\ref{sec:numerical_tests}. But overall we observe similar structure. We also clearly see the expected double-shock in thermal pressure and the outer ring in the other three panels. 
 
-Figure \ref{fig:sedov_metrics} shows that the conservation of total energy and the mean divergence error both improve with increasing resolution. Compared to the reported number of $\langle \varepsilon_{\text{divB}}\rangle=10^{-5}$ in Wissing \& Shen (2020) \cite{WissingShen2020}, these results are still one order of magnitude worse. 
+Figure \ref{fig:sedov_metrics} shows that the conservation of total energy and the mean divergence error both improve with increasing resolution. Compared to the reported number of $\langle \varepsilon_{\text{divB}}\rangle=10^{-5}$ in \cite{WissingShen2020}, these results are still one order of magnitude worse. 
 
 \begin{figure}
     \centering
@@ -222,9 +221,9 @@ $[B_x, B_y, B_z] = B_0[-\sin(2\pi (y - y_{min})), \sin(4\pi (x - x_{min})), 0],$
 
 where $v_0=1$ and $B_0=1/\sqrt{4\pi}$. The initial plasma beta $\beta_0 = 10/3$ and Mach number $M_0=\frac{v_0}{c_s}=1$ and the usual adiabatic index $\gamma=5/3$ then give us our initial pressure $P_0=B_0^2 \beta_0 /2\approx0.133$ and density $\rho_0=\gamma P_0 M_0 \approx 0.221$.
 
-Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions. Comparing to Fig. 5 in Wissing \% Shen (2020) \cite{WissingShen2020} and Fig. 32 in Price et al. 2018 \cite{Price2018}, we manage to capture the overall structure well. With increasing resolution the shocks and the trapped high-density filament become visibly more defined. At $t=1$ \todo{turb stage looks different}
+Figure \ref{fig:ot_slices} shows the results after $t=0.5$ and $t=1.0$ for the three different resolutions. Comparing to Fig. 5 in \cite{WissingShen2020} and Fig. 32 in \cite{Price2018}, we manage to capture the overall structure well. With increasing resolution the shocks and the trapped high-density filament become visibly more defined. At $t=1$ \todo{turb stage looks different}
 
-Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared with Fig. 33 in Price et al. (2018) \cite{Price2018}. We get a qualitatively and quantitatively very similar profile. With increasing resolution, the shock fronts become sharper. 
+Figure \ref{fig:ot_linecuts} shows horizontal pressure slices to be compared with Fig. 33 in \cite{Price2018}. We get a qualitatively and quantitatively very similar profile. With increasing resolution, the shock fronts become sharper. 
 
 Figure \ref{fig:ot_divb} shows the behavior of the divergence error \eqref{eq:divb_error}. Both the mean and maximum error stay bounded, with the mean staying below $10^{-2}$, which was presented by \cite{WissingShen2020} as the preferable upper limit. It is important that we see a clear plateau emerging around $t=1.3$. This means the cleaning scheme is doing its job. If the error would continue to climb, the cleaning parameters would have to be adjusted to make it more aggressive, which in turn could hurt the time step constraint (see §\ref{sec:divb_cleaning}). In the last panel of Figure \ref{fig:ot_divb} we see how the divergence error successfully declines with increasing resolution. 
 
@@ -292,7 +291,7 @@ Figure \ref{fig:rotor} shows the magnetic pressure at $z=0$ and $t=0.15$. The ch
 
 The Kelvin-Helmholtz (KH) instability grows at the interface of two fluids in shear flow and is the standard test for how well a code mixes across a contact discontinuity, a known weak point of traditional SPH. With a magnetic field applied parallel to the flow, magnetic tension acts against the deformation of the interface and slows the growth of the mode. It is also the only test in this suite with a converged reference solution for a scalar growth measure.
 
-We follow the setup of McNally et al. (2012) \cite{McNally2012} in the 3D form used by Wissing \& Shen (2020) \cite{WissingShen2020}. A periodic box of $1 \times 1 \times 0.0625$ holds a dense inner stream $\rho_{in} = 2$ for $0.25 < y < 0.75$ and a light outer stream $\rho_{ext} = 1$, at uniform pressure $P = 5/2$ with $\gamma = 5/3$. The inner stream moves at $v_x = -0.5$ and the outer at $v_x = +0.5$, joined by the exponential ramp of \cite{McNally2012} with smoothing scale $l_s = 0.025$, which makes the linear problem well-posed by removing the sharp velocity discontinuity. The instability is seeded by the single mode $v_y = 0.01 \sin(4 \pi x)$ and a uniform field $B = [-0.1, 0, 0]$ is applied along the flow. The dense stream is sampled at spacing $\Delta = 1/320$, i.e. $[n_x, n_y, n_z] = [320, 320, 20]$ over the full box, the light stream a factor $2^{1/3}$ coarser, giving $1.54 \times 10^6$ particles. We use $\texttt{ng0} = 100$ neighbors and run to $t = 3.2$. The same run was repeated with the magnetic field disabled.
+We follow the setup of McNally et al. \cite{McNally2012} in the 3D form used by Wissing \& Shen \cite{WissingShen2020}. A periodic box of $1 \times 1 \times 0.0625$ holds a dense inner stream $\rho_{in} = 2$ for $0.25 < y < 0.75$ and a light outer stream $\rho_{ext} = 1$, at uniform pressure $P = 5/2$ with $\gamma = 5/3$. The inner stream moves at $v_x = -0.5$ and the outer at $v_x = +0.5$, joined by the exponential ramp of \cite{McNally2012} with smoothing scale $l_s = 0.025$, which makes the linear problem well-posed by removing the sharp velocity discontinuity. The instability is seeded by the single mode $v_y = 0.01 \sin(4 \pi x)$ and a uniform field $B = [-0.1, 0, 0]$ is applied along the flow. The dense stream is sampled at spacing $\Delta = 1/320$, i.e. $[n_x, n_y, n_z] = [320, 320, 20]$ over the full box, the light stream a factor $2^{1/3}$ coarser, giving $1.54 \times 10^6$ particles. We use $\texttt{ng0} = 100$ neighbors and run to $t = 3.2$. The same run was repeated with the magnetic field disabled.
 
 McNally et al. pose a purely hydrodynamic problem in 2D and smooth the \textit{density} jump over $l_s$ as well; the magnetic field and the third dimension come from \cite{WissingShen2020}, and our initial conditions, like theirs, keep that jump sharp so that it is smoothed only over the kernel. The reference is therefore a strong baseline for the growth of the seeded mode rather than an exact target. We further sample with a relaxed glass rather than a close-packed lattice, our slab is $20$ particle spacings thick instead of $12$, and we use the sinc6 kernel with the default schemes of §\ref{sec:numerical_tests} instead of Wendland C4 with $200$ neighbors. Both our velocity and our field carry the opposite sign to theirs, making our configuration the mirror image in $x$: the physics is unchanged, but the rolls wind the other way.
 
@@ -313,14 +312,14 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{img/KH/slice_rho_step1_z+0.0312_panels.pdf}
-    \caption{Magnetized Kelvin-Helmholtz instability: density slices in the mid-plane of the slab ($z = 0.031$) at $t=1.6$, $2.6$ and $3.2$, sampling the dense stream at $\Delta = 1/320$. To be compared with Fig. 9 in Wissing \& Shen (2020) \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
+    \caption{Magnetized Kelvin-Helmholtz instability: density slices in the mid-plane of the slab ($z = 0.031$) at $t=1.6$, $2.6$ and $3.2$, sampling the dense stream at $\Delta = 1/320$. To be compared with Fig. 9 in \cite{WissingShen2020}, noting that our configuration is mirrored in $x$ (see §\ref{sec:kh}).}
     \label{fig:kh_density}
 \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[width=0.5\linewidth]{img/KH/compare_kh.pdf}
-    \caption{Kelvin-Helmholtz mode amplitude $M$ \eqref{eq:kh_amplitude} over time. The reference solution of McNally et al. (2012) \cite{McNally2012}, a converged 2D hydrodynamic grid result, is shown in black and ends at $t=1.5$. Our hydrodynamic run follows it closely, including the oscillations of the seeded mode before $t=0.5$. The magnetized run ($B = [-0.1,0,0]$) grows more slowly from $t \approx 0.7$ onwards and saturates earlier and at a lower amplitude, which is the expected effect of magnetic tension acting against the deformation of the interface.}
+    \caption{Kelvin-Helmholtz mode amplitude $M$ \eqref{eq:kh_amplitude} over time. The reference solution of McNally et al. \cite{McNally2012}, a converged 2D hydrodynamic grid result, is shown in black and ends at $t=1.5$. Our hydrodynamic run follows it closely, including the oscillations of the seeded mode before $t=0.5$. The magnetized run ($B = [-0.1,0,0]$) grows more slowly from $t \approx 0.7$ onwards and saturates earlier and at a lower amplitude, which is the expected effect of magnetic tension acting against the deformation of the interface.}
     \label{fig:kh_growth}
 \end{figure}
 
@@ -333,6 +332,8 @@ Figure \ref{fig:kh_growth} compares $M$ to the reference on a logarithmic axis, 
 
 \subsection{Subsonic MHD turbulence}
 \label{sec:mhd_turb}
+
+
 \todo[inline]{paste turb section from notes}
 Application. DivB error + resistive heating. $1600^3$ particles (more than 4 billion). 
 
