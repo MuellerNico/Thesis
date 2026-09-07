@@ -31,8 +31,7 @@ The code works in units with $\mu_0 = 1$, so the magnetic pressure is $B^2/2$ an
 
 \subsection{Test cases}
 
-The native MHD test cases are selected with \texttt{-{}-init}. Most of them require a glass
-block (\texttt{--glass}). All boxes are fully periodic. The quasi-2D tests use a thin slab in $z$ whose thickness is set automatically from the resolution.
+All MHD test cases presented are implemented natively, i.e. they can simply be selected with \texttt{-{}-init}. Most of them require a glass block (\texttt{--glass}). All boxes are fully periodic. The quasi-2D tests use a thin slab in $z$ whose thickness is set automatically from the resolution.
 
 \begin{table}[htbp]
 \setlength{\abovecaptionskip}{6pt}% space between tabular and caption (arxiv.sty resets this per-table)
@@ -61,19 +60,19 @@ The resolution flag \texttt{-n} keeps its usual meaning of the effective number 
 Just like with the hydro side, test-case parameters (physical constants) can be overridden by passing an HDF5 settings file after a colon (e.g. \texttt{-{}-init mhd-loop:settings.h5}).
 
 \subsection{Command-line options}
-The MHD extension adds the \texttt{-{}-resistivity} flag. It accepts: \todo{remove SLR(B), switch options if not supported in final build}
+The MHD extension adds the \texttt{-{}-resistivity} flag. It accepts:
 
 \begin{center}
 \begin{tabular}{@{}l p{0.72\linewidth}@{}}
-\texttt{switch} & Tricco \& Price (2013) switch\\
-\texttt{SLR} (default) & Slope-limited reconstruction of $\mathbf{B_{ab}}$\\
-\texttt{SLRB} / \texttt{SLRB2} & As \texttt{SLR}, with an additional Balsara-like modulation (power 1 and 2 respectively)\\
-number & Constant $\alpha_B$ (e.g. \texttt{-{}-resistivity 0.5})\\
+\texttt{switch} & Tricco \& Price switch\\
+\texttt{SLR} (default) & slope-limited reconstruction of $\mathbf{B_{ab}}$\\
+\texttt{SLRB}  & \texttt{SLR} with additional Balsara-like modulation \\
+\texttt{SLRB2} & same as \texttt{SLRB} but modulator raised to 2nd power \\
+\texttt{\textless number\textgreater} & sets a constant $\alpha_B$ \\
 \end{tabular}
 \end{center}
 
-Use \texttt{sphexa -{}-help} to list all available CLI flags.
-
+Also see table \ref{tab:ar_schemes} on this. Use \texttt{sphexa -{}-help} to list all available CLI flags.
 
 \subsection{Output and restart}
 

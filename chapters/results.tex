@@ -168,9 +168,9 @@ A thin periodic box is initialized with length $L=[2,1,\frac{30}{n_y}]$, velocit
 
 This test is especially susceptible to the velocity noise floor discussed in the beginning of §\ref{sec:numerical_tests}. The flow needed to conduct this test adequately needs to be uniform and almost perfectly smooth, which SPH-EXA with its glass-setup and kernel choice fails to deliver. Thus, the results are hard to compare against those in the reference papers using lattice initial conditions. 
 
-Figure \ref{fig:loop_av_comp} compares four different runs, all using the same ARSLR scheme but combined with different AV schemes. It is clear that constant AV (no switches, modulation or reconstruction) performs best at maintaining the loops shape, followed by AVSLR and lastly AVSW (AV switches). This is a direct consequence of how well each scheme smooths out the velocity field, specifically sub-resolution shear-noise. 
+Figure \ref{fig:loop_av_comp} compares four different runs, all using the same ARSLR scheme but combined with different AV schemes. It is clear that constant AV ($\alpha = 1$ with no switches, modulation or reconstruction) performs best at maintaining the loops shape, followed by AVSLR and lastly AVSW (AV switches). This is a direct consequence of how well each scheme smooths out the velocity field, specifically sub-resolution shear-noise. 
 
-Constant AV with $\alpha = 1$ is constantly tackling any kind of noise based on the approach velocity $\omega_{ab}$ of two particles (see eq. \eqref{eq:av_Pi}. AVSLR leaves sub-resolution shear noise largely undamped. Meanwhile AVSW reduces $\alpha$ close to $\alpha_{min}$ because switches only activate when there is compression. 
+Constant AV is constantly tackling any kind of noise based on the approach velocity $\omega_{ab}$ of two particles (see eq. \eqref{eq:av_Pi}. AVSLR leaves sub-resolution shear noise largely undamped. Meanwhile AVSW reduces $\alpha$ close to $\alpha_{min}$ because switches only activate when there is compression. 
 
 %AVSLR removes the resolved linear shear and therefore leaves sub-resolution shear noise largely undamped, which is why it ranks below constant AV here.
 
@@ -207,7 +207,7 @@ With this knowledge in mind, Figure \ref{fig:loop_ar_comp} uses constant AV to m
     % \includegraphics[width=0.8\linewidth]{img/eMagCompare/compare_eMag_4.pdf}
     \includegraphics[width=\linewidth]{img/MHD-Loop/compare_heating.pdf}
     \includegraphics[width=0.5\linewidth]{img/MHD-Loop/compare_emag.pdf}
-    \caption{Comparison of magnetic energy dissipation in the MHD advection loop. The SLR scheme is shown in blue, a05 in orange, and a reference run using no AR ($\alpha_B=0$) in green. Top left panel shows normalized resistive heating rate $\dot u_{diss}$ over time. Top right panel shows the cumulative resistive heating. The bottom panel then compares the evolution of the normalized magnetic energy $E_{mag}/E_{mag,0}$. The dotted lines represent the evolution if the only change were through dissipation, while the solid lines represent the actual magnetic energy including dynamo-like stretching of field lines which increases the overall magnetic energy.}
+    \caption{Comparison of magnetic energy dissipation in the MHD advection loop using constant AV. The SLR scheme is shown in blue, a05 in orange, and a reference run using no AR ($\alpha_B=0$) in green. Top left panel shows normalized resistive heating rate $\dot u_{diss}$ over time. Top right panel shows the cumulative resistive heating. The bottom panel then compares the evolution of the normalized magnetic energy $E_{mag}/E_{mag,0}$. The dotted lines represent the evolution if the only change were through dissipation, while the solid lines represent the actual magnetic energy including dynamo-like stretching of field lines which increases the overall magnetic energy.}
     \label{fig:loop_metrics}
 \end{figure}
 

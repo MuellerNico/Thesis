@@ -427,8 +427,8 @@ SLRB  & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=1$ & $L_{ab}$ \\
 SLRB2 & $1$   & $\mathbf{B}'_{ab}$, \eqref{eq:slr_B_mod}, $p=2$ & $L_{ab}$ \\
 \bottomrule
 \end{tabular}
-\caption{AR schemes in SPH-EXA. The constant-coefficient scheme can technically take on any real number, however $\alpha_B=0.5$ as in \cite{WissingShen2020} or 1.0 as in \cite{Price2018} are the established variants.}
 \label{tab:ar_schemes}
+\caption{AR schemes in SPH-EXA. The constant-coefficient scheme can technically take on any real number, however $\alpha_B=0.5$ as in \cite{WissingShen2020} or 1.0 as in \cite{Price2018} are the established variants.}
 \end{table}
 
 Applying slope-limited reconstruction to AR has, to our knowledge, not been attempted before and its behavior is subject to the tests in §\ref{sec:numerical_tests}. The hope is that this removes the need for the global compromise of a reduced $\alpha_B$, allowing AR to dissipate incoherent noise and true discontinuities at full strength while preserving resolved structure.
