@@ -1,16 +1,15 @@
 \section{Performance and scaling analysis}
 \label{sec:performance}
 
-In this chapter we conduct a performance and scaling analysis of the new MHD implementation in SPH-EXA. The first goal is to verify that parallel scaling efficiency is upheld compared to the pure hydrodynamic code, which will serve as a baseline here. Secondly, we inspect the relative computational overhead and ensure that we observe it in places where it is expected and to a degree that is reasonable. We also compare the performance of the two main resistivity schemes discussed throughout this paper and quantify the additional overhead induced through reconstruction by ARSLR (§\ref{sec:ar}). 
+In this chapter we conduct a performance and scaling analysis of the new MHD implementation in SPH-EXA. The first goal is to verify that parallel scaling efficiency is maintained compared to the pure hydrodynamic code, which will serve as a baseline here. Secondly, we inspect the relative computational overhead and ensure that we observe it in places where it is expected and to a degree that is reasonable. We also compare the performance of the two main resistivity schemes discussed throughout the previous chapter and quantify the additional overhead induced through linear reconstruction by ARSLR (§\ref{sec:ar}). 
 
-In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in execution time per iteration (time step). This way, the effect of the MHD-specific physical time step constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. For each data point we run twelve iterations, exclude the first as warm-up, and report the median of the remaining eleven.
+In all performance experiments the magnetized Sedov blast test case is used (§\ref{sec:sedov}) with its non-magnetized hydrodynamic equivalent as baseline. Performance is measured in wall time per iteration (timestep). This way, the effect of the MHD-specific physical timestep constraint (§\ref{sec:timeint}), which varies strongly between different test cases, is eliminated. For each data point we run twelve iterations, exclude the first as warm-up, and report the median of the remaining eleven.
 
-Contrary to the numerical tests in §\ref{sec:numerical_tests} we use regular lattices instead of glass blocks to more finely control the exact amount of particles. This is important when it comes to setting up weak scaling experiments. 
+Contrary to the setups in §\ref{sec:numerical_tests} we use regular lattices instead of glass blocks to more finely control the exact number of particles. This is important when it comes to setting up weak scaling experiments, where multiples of the smallest glass blocks ($N=20^3$) are simply too coarse. Since we do not care about the physical solution structure at all, this substitution should be irrelevant.
 
 All runs are performed on the Euler cluster of ETH Zürich, using nVidia RTX 4090 GPUs with 24 GB of VRAM each. 
 
-
-Both the strong and weak scaling analysis are primarily intended for quick verification of the implementation. A proper extensive study would use a much larger allocation with thousands of nodes (as was done in \cite{Cavelan2020}) and more precisely tailor problems to the available architecture. This is however out of scope for this project. 
+Both the strong and weak scaling analysis are primarily intended for quick verification of the implementation. A proper extensive study would use a much larger allocation with thousands of nodes (as was done in \cite{Cavelan2020} for an older version of SPH-EXA) and more precisely tailor problems to the available architecture. This is however out of scope.
 
 \subsection{Strong scaling analysis}
 \label{sec:strong_scaling}
@@ -42,20 +41,22 @@ Despite the spiky behavior, this still allows us to verify that the MHD implemen
 \subsection{Kernel overhead comparison}
 \label{sec:kernel_comparison}
 
-In Figure \ref{fig:kernel_comparison} we inspect the per-iteration runtime of individual kernels. The only MHD-exclusive kernel is the \textit{induction and dissipation} kernel which copmutes the induction equation, divergence cleaning terms and artificial resistivity. The additional linear reconstruction which SLR performs in this kernel results in the visible $17\%$ runtime increase compared to a05. 
+In Figure \ref{fig:kernel_comparison} we inspect the per-iteration wall time of individual kernels. The only MHD-exclusive kernel is the \textit{induction and dissipation} kernel which copmutes the induction equation, divergence cleaning terms and artificial resistivity. The additional linear reconstruction which SLR performs in this kernel results in the visible $17\%$ wall time increase compared to a05. 
 
-The IAD kernel (see §\ref{sec:iad} Integral approach to derivatives) calculates all derivatives ($\nabla \cdot \mathbf{v}$, $\nabla \times \mathbf{v}$ and the velocity Jacobian consumed by AVSLR). The MHD extension requires an additional neighbor pass to calculate the extra derivatives of the magnetic field ($\nabla \cdot \mathbf{B}$, $\nabla \times \mathbf{B}$ and the Jacobian of the magnetic field consumed by ARSLR). Therefore the increase of almost exactly $100\%$ is expected if the neighbor loops are not fused. \todo{reference appendix and insert compilation problem there} 
+The IAD kernel (see §\ref{sec:iad} Integral approach to derivatives) calculates all derivatives ($\nabla \cdot \mathbf{v}$, $\nabla \times \mathbf{v}$ and the velocity Jacobian consumed by AVSLR). The MHD extension requires an additional neighbor pass to calculate the extra derivatives of the magnetic field ($\nabla \cdot \mathbf{B}$, $\nabla \times \mathbf{B}$ and the Jacobian of the magnetic field consumed by ARSLR). Therefore the increase of almost exactly $100\%$ is expected if the neighbor loops are not fused.
 
 In the momentum and energy kernel lie the magnetic pressure contributions \eqref{eq:maxwell_stress} as well as the tensile instability correction \eqref{eq:fdivb} adding up to $28\%$ overhead. 
 
 Finally, halo exchange time increases due to the additional fields required by MHD: The magnetic field itself, the cleaning term $\psi/c_h$ \eqref{eq:psi_evolution} and the three additional components in the full 9-field velocity Jacobian instead of a compressed 6-component version used by hydro. Using SLR instead of a05 comes with another slight increase from the 9-field Jacobian of the magnetic field. 
 
-Overall, one complete SPMHD iteration in SPH-EXA takes around $60\%$ more time than a pure SPH iteration. 
+The total time per MHD iteration increases by $54.5\%$ for a05 compared to a pure hydro iteration. Using ARSLR over a05 again increases total time by a further $4.8\%$ (for a total of 65.8\% over hydro). 
+
+% Overall, one complete SPMHD iteration in SPH-EXA takes around $60\%$ more time than a pure SPH iteration. Total time per iteration increases by $4.8\%$ when using SLR over a05. 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.9\linewidth]{img/Perf/thesis_kernel_comparison.pdf}
-    \caption{Per-kernel comparison of runtime between hydro baseline and MHD extension using a05 and SLR resistivity schemes. $N=400^3$ on 4 GPUs. The tiny differences seen between SLR and a05 in some columns (e.g. XMass, Volume Elements, Momentum \& Energy) is due to node-to-node noise in the experiment and not of relevance.}
+    \caption{Per-kernel comparison of wall time between hydro baseline and MHD extension using a05 and SLR resistivity schemes. $N=400^3$ on 4 GPUs. The tiny differences seen between SLR and a05 in some columns (e.g. XMass, Volume Elements, Momentum \& Energy) is due to node-to-node noise in the experiment and not of relevance.}
     \label{fig:kernel_comparison}
 \end{figure}
 

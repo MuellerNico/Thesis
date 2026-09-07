@@ -16,18 +16,18 @@ The MHD extension adds two new propagators (\texttt{magneto-ve} and \texttt{magn
 
 \subsection{Running a simulation}
 
-The same executable is used as for pure hydrodynamics
-(\texttt{sphexa} on CPU, \texttt{sphexa-cuda} on GPU). A minimal run:
+The same executable is used as for pure hydrodynamics (\texttt{sphexa} on CPU, \texttt{sphexa-cuda} on GPU). A minimal run:
 
 \begin{verbatim}
-sphexa --init orszag-tang --prop magneto-ve --glass 30c.h5 \
-       -n 240 -s 1.0 -w 0.1
+sphexa --init alfven-wave --prop magneto-ve --glass 30c.h5 \
+       -n 60 -s 1.0 -w 0.1
 \end{verbatim}
 
 The propagator must be an MHD propagator. Use \texttt{-{}-prop magneto-ve} for all test cases, or \texttt{-{}-prop magneto-turb-ve} for driven turbulence. Using a different propagator with an MHD test will crash the program. Same goes when using an MHD propagator with a hydro test which does not allocate a magnetic field. 
 
-The code works in units with $\mu_0 = 1$, so the magnetic pressure is $B^2/2$ and the
-Alfv\'en speed is $v_A = |\mathbf{B}|/\sqrt{\rho}$.
+The code works in units with $\mu_0 = 1$, so the magnetic pressure is $B^2/2$ and the Alfv\'en speed is $v_A = |\mathbf{B}|/\sqrt{\rho}$.
+
+% Depending on the test case, total simulation time can vary a lot compared. The magnetic Sedov imposes a timestep $100\times$ smaller than the normal Sedov test (at least initially), while MHD turbulence does not feel the additional timestep constraint at all. 
 
 \subsection{Test cases}
 
@@ -122,7 +122,7 @@ Two python scripts are provided for everyday needs.
 python scripts/plot_constants.py path/to/constants.txt
 \end{verbatim}
 
-produces \texttt{constants\_diagnostics.pdf} next to the input file: A diagnostic dashboard showing panels with energy components, relative total-energy drift, linear and angular momentum, normalized magnetic energy, the mean and maximum divergence error, the time step, and the resistive heating rate together with its cumulative integral. The magnetic-energy. Appending this e.g. to a Slurm job after a simulation gives the user a lot of information about the run at a single glance. 
+produces \texttt{constants\_diagnostics.pdf} next to the input file: A diagnostic dashboard showing panels with energy components, relative total-energy drift, linear and angular momentum, normalized magnetic energy, the mean and maximum divergence error, the timestep, and the resistive heating rate together with its cumulative integral. The magnetic-energy. Appending this e.g. to a Slurm job after a simulation gives the user a lot of information about the run at a single glance. 
 
 \begin{verbatim}
 python scripts/plot_slice.py path/to/dump.h5 3 --field Bmag --cmap magma
@@ -146,6 +146,7 @@ CLI flag & description \\
 \texttt{-{}-log} & log scale \\
 \texttt{-{}-vmin}/\texttt{--vmax} & color scale limits \\
 \texttt{-{}-fieldlines} & streamplot overlay (uses $\mathbf{B}$ by default) \\
+\texttt{-{}-contours n} & adds \texttt{n} contours \\
 \texttt{-{}-scatter} & scatter instead of interpolation (faster) \\
 \texttt{-{}-clean} & cleaner PDF output with serif font \\
 \texttt{-{}-help} & list remaining options \\
@@ -214,7 +215,7 @@ file in \texttt{magneto\_ve/} & contents \\
 \texttt{iad\_full\_divv\_curlv\_kern.hpp} & Fused loop: IAD matrix, grad-h term, full velocity Jacobian, \texttt{divv}/\texttt{curlv}. \\
 \texttt{divB\_curlB\_kern.hpp}            & $\mathbf{B}$ Jacobian, $\nabla\cdot\mathbf{B}$ (direct and conjugate), $\nabla\times\mathbf{B}$. \\
 \texttt{iad\_div\_curl.hpp}/\texttt{.cu}  & Driver calling the two loops above. \\
-\texttt{magnetic\_momentum\_energy*}      & Momentum/energy with magnetic stress, tensile-instability correction, magnetosonic time step. \\
+\texttt{magnetic\_momentum\_energy*}      & Momentum/energy with magnetic stress, tensile-instability correction, magnetosonic timestep. \\
 \texttt{induction\_dissipation*}          & $d\mathbf{B}/dt$: ideal induction, artificial resistivity, $\psi$ cleaning. \\
 \texttt{mhd\_kernels.hpp}                 & \texttt{mhdSLRCorrection} and small math helpers. \\
 \texttt{time\_integration*}               & Second-order Adams--Bashforth update of $\mathbf{B}$ and $\psi$. \\
@@ -239,7 +240,7 @@ Precision follows the hydro types: double for $\mathbf{B}$ and its derivatives, 
 
 The propagator is \texttt{MagnetoHydroProp<bool SLR, bool MhdSLR>} with two independent compile-time flags: \texttt{SLR} is the hydro slope-limited reconstruction in the artificial viscosity (Section~\ref{sec:slr}), shared with the hydro propagator; \texttt{MhdSLR} is the reconstruction of $\mathbf{B}$ in the artificial resistivity (Section~\ref{sec:ar}). Because the choice selects a template specialization rather than a runtime branch, \texttt{-{}-resistivity} is parsed in \texttt{sphexa.cpp} \emph{before} the propagator factory runs, and all four flag combinations are instantiated. At startup the propagator prints one line per active flag (``SLR is activated'', ``SLR resistivity is activated'').
 
-\subsection{The time step}
+\subsection{The timestep}
 
 \texttt{computeForces} deliberately matches the hydro propagator's structure, including its count of four halo exchanges per step:
 
@@ -294,10 +295,10 @@ One choice here looks wrong at first sight but is intentional: with reconstructi
 \subsection{Limitations}
 
 \begin{itemize}
-    \item \textbf{Divergence-cleaning parameters are fixed} at $f_\mathrm{clean} = \sigma_c = 1$ and are not exposed on the command line. A more aggressive cleaning speed would require an additional Courant limit on the time step.
+    \item \textbf{Divergence-cleaning parameters are fixed} at $f_\mathrm{clean} = \sigma_c = 1$ and are not exposed on the command line. A more aggressive cleaning speed would require an additional Courant limit on the timestep.
     \item \textbf{Artificial resistivity imposes no time-step constraint.} \texttt{dtCourant} comes only from the magnetosonic signal speed; the effective diffusivity $\eta \sim \tfrac{1}{2}\alpha_B\, v_\mathrm{sig}\, h$ would demand $\Delta t \lesssim h/(\alpha_B v_\mathrm{sig})$, which is not enforced. The cleaning wave speed \emph{is} covered, being bounded by the magnetosonic speed. The risk zone is strong shear at low sound speed.
     \item \textbf{Exact energy conservation of the cleaning terms assumes equal particle masses} (a residual factor $m_j/m_i$ otherwise), which all built-in test cases satisfy --- but this might not be future proof.
-    \item \textbf{No block time stepping.} There is no MHD analogue of the \texttt{ve-bdt} propagator; all particles are advanced on a global time step.
+    \item \textbf{No block time stepping.} There is no MHD analogue of the \texttt{ve-bdt} propagator; all particles are advanced on a global timestep.
     \item \textbf{Self-gravitating MHD is untested.} Nothing prevents combining \texttt{-{}-prop magneto-ve} with self-gravity, but neither the time-step control nor the Lorentz force have been validated in that regime.
     \item \textbf{Symmetric neighbor-search modes are unsupported.} The induction loop uses \texttt{du} as both input and output, which the symmetric-mode machinery silently aliases onto an accumulator, corrupting the internal-energy update. The default traversal and the compressed-full mode are unaffected; the clustered and compressed-half modes would need this fixed first.
     \item \textbf{No automated tests} cover the MHD kernels yet. The two highest-value additions would be a unit test for \texttt{mhdSLRCorrection} (for a linear field $\mathbf{B}(\mathbf{x}) = \mathbf{B}_0 + \mathbf{J}\mathbf{x}$ the corrected $\mathbf{B}_{ab}$ must vanish) and a gradient-consistency test checking that a linear field reproduces its imposed $\nabla\cdot\mathbf{B}$, $\nabla\times\mathbf{B}$ and Jacobian.
