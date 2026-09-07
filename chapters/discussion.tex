@@ -7,16 +7,13 @@ The MHD extension adds a computational overhead of $\sim 60\%$ wall time per ite
 
 ARSLR achieved what we hoped for: small but distinct improvements over the `compromise' of a reduced resistivity coefficient on both fronts. In the shocktube test it does not under-dissipate, showing slightly less oscillation than the baseline, and in the noisy Alfvén wave it cleans uncorrelated noise more aggressively. At the same time it preserves the resolved structure of the Alfvén wave amplitude better and reduces resistive heating in all tests. It does so at reasonable computational cost of $4.8\%$ increased time per iteration. 
 
-However, the improvements remain small and are not game-changing for the presented tests. In particular, no test in the suite exposes a case where the limiter fails, SLR under-dissipates, and the modulation of SLRB or SLRB2 would be needed. Whether the parallel-component 
+However, the improvements remain small and are not game-changing for the presented tests. In particular, no test in the suite exposes a case where the limiter fails, SLR under-dissipates, and the modulation of SLRB or SLRB2 would be needed. The parallel-component limiter is only partially motivated MHD and component-wise limiters might still prove useful. It remains to be seen in which relevant scenarios ARSLR might bring real structural benefits and where it will fail. A well functioning and proven SLR scheme, which reliably protects resolved structure from unwanted dissipation, could potentially also open the door to further increase dissipation (e.g. by raising the coefficient $\alpha_B$ beyond 1) in places where necessary. 
 
-
+A recurring theme was that magnetic results are dominated by the choice of AV. Small-scale velocity noise leads to increased magnetic dissipation via the signal velocity or enters the induction equation through the velocity gradient tensor. In the advection loop, the AV scheme ended up mattering far more than the AR scheme, with the most aggressive AV scheme leading to the best results.
 
 Worth considering adding back in a minimal amount of dissipation (near zero for AVSLR) as a compromise for smooth flow MHD applications. 
-maybe no test for SLRB(2) to shine. shocktube limited. SLR maybe still under-dissipates in relevant cases?
 
-No fit-all combination. Best to have options and knowledge about problem being tackled. -> Software challenge with not having unused halo exchanges and memory load on GPUs etc for unused schemes. Template coding gives some options, but gets messy quick. 
 
-Cranking up alphaB when using SLR to increase hitting at shock fronts even more. If SLR detects smooth regions consistently could be worth it. Have to consider timestep constraint. 
 
 AV and AR closely linked. Cannot separate.
 
@@ -28,7 +25,7 @@ Outlook on better limiter, constructed with separate aggregation
 
 optimization work? 
 
-%The margins are however modest, and the tests in this suite do not strongly separate the schemes. In particular no test in the suite exposes a case where SLR under-dissipates and the steepness modulation of SLRB or SLRB2 would be needed; the shocktube is one-dimensional and every pair samples the true gradient direction, which is the most favorable case for the limiter. Whether the parallel-component limiter of \eqref{eq:vanleer} is sufficient for oblique current sheets in 3D remains open, and the honest position is that SLR should be used with SLRB2 as a safeguard until a test that discriminates between them exists.
+
 
 % \paragraph{AV and AR cannot be separated.}
 % A recurring observation across the suite is that the magnetic results are dominated by the choice of AV. The signal speed $v_{\mathrm{sig},B}$ turns any transverse velocity noise into resistivity, and the same noise injects magnetic energy through the induction equation. In the advection loop the AV scheme mattered far more than the AR scheme, and a constant, over-dissipative AV gave the best magnetic result. This suggests that for smooth-flow MHD applications a small constant floor of viscous dissipation, close to zero for AVSLR, may be a worthwhile compromise. It also suggests the converse: once SLR reliably identifies smooth regions, $\alpha_B$ could be raised above one to hit discontinuities harder without penalty elsewhere, subject to the diffusive time step constraint discussed in §\ref{sec:timeint}, which currently does not enter the Courant condition.
